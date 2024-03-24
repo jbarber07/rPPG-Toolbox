@@ -28,8 +28,6 @@ def unsupervised_predict(config, data_loader, method_name):
         for idx in range(batch_size):
             data_input, labels_input = test_batch[0][idx].cpu().numpy(), test_batch[1][idx].cpu().numpy()
             if method_name == "POS":
-                #print the data_input
-                print(f"labels_input : {labels_input}")
                 BVP = POS_WANG(data_input, config.UNSUPERVISED.DATA.FS)
             elif method_name == "CHROM":
                 BVP = CHROME_DEHAAN(data_input, config.UNSUPERVISED.DATA.FS)

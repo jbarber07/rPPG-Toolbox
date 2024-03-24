@@ -227,6 +227,9 @@ class BaseLoader(Dataset):
             frames,
             config_preprocess.RESIZE.W,
             config_preprocess.RESIZE.H)
+        #save one frame for debugging
+        cv2.imwrite('preprocessed_frame.jpg', frames[0])
+        
         # Check data transformation type
         data = list()  # Video data
         for data_type in config_preprocess.DATA_TYPE:
@@ -348,12 +351,10 @@ class BaseLoader(Dataset):
             resized_frames(list[np.array(float)]): Resized and cropped frames
         """
         # Frame Resizing
-        print(f"Number of frames: {len(frames)}")
         resized_frames = np.zeros((frames.shape[0], height, width, 3))
         for i in range(0, frames.shape[0]):
             frame = frames[i]
             resized_frames[i] = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
-        print("numb of frames", len(resized_frames))
         return resized_frames
     
             
@@ -548,6 +549,7 @@ class BaseLoader(Dataset):
         self.inputs = inputs
         self.labels = labels
         self.preprocessed_data_len = len(inputs)
+        print(f" {self.dataset_name} Preprocessed Dataset Length: {self.preprocessed_data_len}", end='\n\n')
 
     @staticmethod
     def diff_normalize_data(data):
