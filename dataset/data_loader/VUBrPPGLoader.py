@@ -1,9 +1,3 @@
-"""The dataloader for UBFC-rPPG dataset.
-
-Details for the UBFC-rPPG Dataset see https://sites.google.com/view/ybenezeth/ubfcrppg.
-If you use this dataset, please cite this paper:
-S. Bobbia, R. Macwan, Y. Benezeth, A. Mansouri, J. Dubois, "Unsupervised skin tissue segmentation for remote photoplethysmography", Pattern Recognition Letters, 2017.
-"""
 import glob
 import os
 import re
@@ -11,15 +5,15 @@ from multiprocessing import Pool, Process, Value, Array, Manager
 
 import cv2
 import numpy as np
-import pandas as pd
 from dataset.data_loader.BaseLoader import BaseLoader
 from tqdm import tqdm
+import pandas as pd
 
 
-class UBFCrPPGLoader(BaseLoader):
-    """The data loader for the UBFC-rPPG dataset."""
+class VUBrPPGLoader(BaseLoader):
+    """The data loader for the VUB-rPPG dataset."""
 
-    def __init__(self, name, data_path, config_data, frames_save_path="/home/jerba/rPPG-Toolbox/ubfc/PreprocessedData/frames/" ):
+    def __init__(self, name, data_path, config_data):
         """Initializes an UBFC-rPPG dataloader.
             Args:
                 data_path(str): path of a folder which stores raw video and bvp data.
@@ -28,14 +22,14 @@ class UBFCrPPGLoader(BaseLoader):
                      RawData/
                      |   |-- subject1/
                      |       |-- vid.avi
-                     |       |-- ground_truth.txt
+                     |       |-- ground_truth.xlsx
                      |   |-- subject2/
                      |       |-- vid.avi
-                     |       |-- ground_truth.txt
+                     |       |-- ground_truth.xlsx
                      |...
                      |   |-- subjectn/
                      |       |-- vid.avi
-                     |       |-- ground_truth.txt
+                     |       |-- ground_truth.xlsx
                 -----------------
                 name(string): name of the dataloader.
                 config_data(CfgNode): data settings(ref:config.py).
@@ -45,6 +39,7 @@ class UBFCrPPGLoader(BaseLoader):
     def get_raw_data(self, data_path):
         """Returns data directories under the path(For UBFC-rPPG dataset)."""
         data_dirs = glob.glob(data_path + os.sep + "subject*")
+        print(f"Found {len(data_dirs)} data directories in {data_path}")
         if not data_dirs:
             raise ValueError(self.dataset_name + " data paths empty!")
         dirs = [{"index": re.search(
@@ -69,82 +64,45 @@ class UBFCrPPGLoader(BaseLoader):
         """ invoked by preprocess_dataset for multi_process."""
         filename = os.path.split(data_dirs[i]['path'])[-1]
         saved_filename = data_dirs[i]['index']
+        print(f"Processing {filename}")
 
         # Read Frames
         if 'None' in config_preprocess.DATA_AUG:
             # Utilize dataset-specific function to read video
             frames = self.read_video(
-                os.path.join(data_dirs[i]['path'],"vid.mp4"))
+                os.path.join(data_dirs[i]['path'],"vid.avi"))
         elif 'Motion' in config_preprocess.DATA_AUG:
             # Utilize general function to read video in .npy format
             frames = self.read_npy_video(
                 glob.glob(os.path.join(data_dirs[i]['path'],'*.npy')))
         else:
             raise ValueError(f'Unsupported DATA_AUG specified for {self.dataset_name} dataset! Received {config_preprocess.DATA_AUG}.')
-        if len(frames) == 0:
-            raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/vid.mp4")
-        
+
         # Read Labels
         if config_preprocess.USE_PSUEDO_PPG_LABEL:
             bvps = self.generate_pos_psuedo_labels(frames, fs=self.config_data.FS)
         else:
             bvps = self.read_wave(
                 os.path.join(data_dirs[i]['path'],"ground_truth.xlsx"))
-        
-        print(f"Number of frames before preprocessing: {len(frames)}")
+            
         frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
         input_name_list, label_name_list = self.save_multi_process(frames_clips, bvps_clips, saved_filename)
         file_list_dict[i] = input_name_list
 
-    # @staticmethod
-    # def read_video(video_file):
-    #     """Reads a video file, returns frames(T, H, W, 3) """
-    #     VidObj = cv2.VideoCapture(video_file)
-    #     VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
-    #     success, frame = VidObj.read()
-    #     frames = list()
-    #     while success:
-    #         frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
-    #         frame = np.asarray(frame)
-    #         frames.append(frame)
-    #         success, frame = VidObj.read()
-    #     return np.asarray(frames)
-    # @staticmethod
-    # def read_wave(bvp_file):
-    #     """Reads a bvp signal file."""
-    #     with open(bvp_file, "r") as f:
-    #         lines = f.read().split("\n")
-    #         # Assuming each line contains multiple numbers separated by commas,
-    #         # and you want to retrieve the second element from each line:
-    #         bvp = [float(line.split(',')[1]) for line in lines if line]
+    @staticmethod
+    def read_video(video_file):
+        """Reads a video file, returns frames(T, H, W, 3) """
+        VidObj = cv2.VideoCapture(video_file)
+        VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
+        success, frame = VidObj.read()
+        frames = list()
+        while success:
+            frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
+            frame = np.asarray(frame)
+            frames.append(frame)
+            success, frame = VidObj.read()
+        return np.asarray(frames)
 
-    #     print(f"Read {len(bvp)} samples from {bvp_file}")
-    #     print(f"First read bvp sample: {bvp[0]}")
-    #     return np.asarray(bvp)
-    
-    # @staticmethod
-    # def read_video(video_path, cropping=False):
-    #     cap = cv2.VideoCapture(video_path)
-    #     if not cap.isOpened():
-    #         raise ValueError(f"Failed to open video file {video_path}")
-            
-        
-    #     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # Get total number of frames in the video
-    #     frames_processed = list()
-    #     target_size = (72, 72) 
-        
-    #     for _ in tqdm(range(frame_count), desc="Hand detection"):
-    #         ret, frame = cap.read()
-    #         if not ret:
-    #             raise ValueError(f"Failed to read frame from {video_path}")
-    #         if cropping:
-    #            pass
-    #         else:
-    #             frames_processed.append(frame)
-        
-    #     cap.release()
-    #     return np.asarray(frames_processed)
-    
     @staticmethod
     def read_wave(bvp_file):
         """Reads a bvp signal file."""
@@ -161,5 +119,3 @@ class UBFCrPPGLoader(BaseLoader):
         print(f"Read {len(bvp)} samples from {bvp_file}")
         print(f"First read bvp sample: {bvp[0]}")
         return np.asarray(bvp)
-    
-    

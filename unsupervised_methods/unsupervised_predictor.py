@@ -1,4 +1,5 @@
 """Unsupervised learning methods including POS, GREEN, CHROME, ICA, LGI and PBV."""
+from matplotlib import pyplot as plt
 import numpy as np
 from evaluation.post_process import *
 from unsupervised_methods.methods.CHROME_DEHAAN import *
@@ -9,6 +10,7 @@ from unsupervised_methods.methods.PBV import *
 from unsupervised_methods.methods.POS_WANG import *
 from tqdm import tqdm
 from evaluation.BlandAltmanPy import BlandAltman
+import cv2
 
 def unsupervised_predict(config, data_loader, method_name):
     """ Model evaluation on the testing dataset."""
@@ -26,6 +28,8 @@ def unsupervised_predict(config, data_loader, method_name):
         for idx in range(batch_size):
             data_input, labels_input = test_batch[0][idx].cpu().numpy(), test_batch[1][idx].cpu().numpy()
             if method_name == "POS":
+                #print the data_input
+                print(f"labels_input : {labels_input}")
                 BVP = POS_WANG(data_input, config.UNSUPERVISED.DATA.FS)
             elif method_name == "CHROM":
                 BVP = CHROME_DEHAAN(data_input, config.UNSUPERVISED.DATA.FS)
@@ -121,6 +125,8 @@ def unsupervised_predict(config, data_loader, method_name):
                     file_name=f'{filename_id}_Peak_BlandAltman_DifferencePlot.pdf')
             else:
                 raise ValueError("Wrong Test Metric Type")
+        print(f"Predicted HR: {predict_hr_peak_all}")
+        print(f"Ground Truth HR: {gt_hr_peak_all}")
     elif config.INFERENCE.EVALUATION_METHOD == "FFT":
         predict_hr_fft_all = np.array(predict_hr_fft_all)
         gt_hr_fft_all = np.array(gt_hr_fft_all)
@@ -164,5 +170,8 @@ def unsupervised_predict(config, data_loader, method_name):
                     file_name=f'{filename_id}_FFT_BlandAltman_DifferencePlot.pdf')
             else:
                 raise ValueError("Wrong Test Metric Type")
+        print(f"Predicted HR: {predict_hr_fft_all}")
+        print(f"Ground Truth HR: {gt_hr_fft_all}")
+        
     else:
         raise ValueError("Inference evaluation method name wrong!")

@@ -267,6 +267,8 @@ if __name__ == "__main__":
             unsupervised_loader = data_loader.BP4DPlusLoader.BP4DPlusLoader
         elif config.UNSUPERVISED.DATA.DATASET == "UBFC-PHYS":
             unsupervised_loader = data_loader.UBFCPHYSLoader.UBFCPHYSLoader
+        elif config.UNSUPERVISED.DATA.DATASET == "VUB-rPPG":
+            unsupervised_loader = data_loader.VUBrPPGLoader.VUBrPPGLoader
         else:
             raise ValueError("Unsupported dataset! Currently supporting UBFC-rPPG, PURE, MMPD, \
                              SCAMPS, BP4D+, and UBFC-PHYS.")
@@ -275,6 +277,8 @@ if __name__ == "__main__":
             name="unsupervised",
             data_path=config.UNSUPERVISED.DATA.DATA_PATH,
             config_data=config.UNSUPERVISED.DATA)
+        
+        
         data_loader_dict["unsupervised"] = DataLoader(
             dataset=unsupervised_data,
             num_workers=16,
