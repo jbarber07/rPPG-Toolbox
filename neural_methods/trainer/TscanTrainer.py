@@ -69,12 +69,19 @@ class TscanTrainer(BaseTrainer):
                 data, labels = batch[0].to(
                     self.device), batch[1].to(self.device)
                 N, D, C, H, W = data.shape
+                # check if the tensor is in the correct shape
+                print(f"\nFirst 10 labels of the tensor: {labels[:10]}")
                 data = data.view(N * D, C, H, W)
                 labels = labels.view(-1, 1)
                 data = data[:(N * D) // self.base_len * self.base_len]
                 labels = labels[:(N * D) // self.base_len * self.base_len]
                 self.optimizer.zero_grad()
                 pred_ppg = self.model(data)
+                print(f"pred_ppg shape: {pred_ppg.shape}")
+                print(f"labels shape: {labels.shape}")
+                # print the first 10 predictions and labels
+                print(f"pred_ppg: {pred_ppg[:10]}")
+                print(f"labels: {labels[:10]}")
                 loss = self.criterion(pred_ppg, labels)
                 loss.backward()
 
