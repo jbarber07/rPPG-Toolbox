@@ -88,32 +88,46 @@ class BaseLoader(Dataset):
 
     def __getitem__(self, index):
         """Returns a clip of video(3,T,W,H) and it's corresponding signals(T)."""
-        data = np.load(self.inputs[index])
-        label = np.load(self.labels[index])
+        # Ensure the index is within bounds
+        assert 0 <= index < len(self.inputs), "Index out of bounds"
+        
+        # Load data and label
+        data_path = self.inputs[index]
+        label_path = self.labels[index]
+        try:
+            data = np.load(data_path)
+            label = np.load(label_path)
+        except Exception as e:
+            print(f"Error loading data or label at index {index}: {e}")
+            raise
+        
+        # Data format handling
         if self.data_format == 'NDCHW':
             data = np.transpose(data, (0, 3, 1, 2))
         elif self.data_format == 'NCDHW':
             data = np.transpose(data, (3, 0, 1, 2))
         elif self.data_format == 'NDHWC':
-            pass
+            pass  # No change required
         else:
             raise ValueError('Unsupported Data Format!')
+
         data = np.float32(data)
         label = np.float32(label)
-        # item_path is the location of a specific clip in a preprocessing output folder
-        # For example, an item path could be /home/data/PURE_SizeW72_...unsupervised/501_input0.npy
-        item_path = self.inputs[index]
-        # item_path_filename is simply the filename of the specific clip
-        # For example, the preceding item_path's filename would be 501_input0.npy
-        item_path_filename = item_path.split(os.sep)[-1]
-        # split_idx represents the point in the previous filename where we want to split the string 
-        # in order to retrieve a more precise filename (e.g., 501) preceding the chunk (e.g., input0)
+        
+        # Debugging: Check if the data or label is empty
+        if data.size == 0:
+            print(f"Data is empty at index {index}: {data_path}")
+        if label.size == 0:
+            print(f"Label is empty at index {index}: {label_path}")
+        
+        item_path_filename = data_path.split(os.sep)[-1]
         split_idx = item_path_filename.rindex('_')
-        # Following the previous comments, the filename for example would be 501
         filename = item_path_filename[:split_idx]
-        # chunk_id is the extracted, numeric chunk identifier. Following the previous comments, 
-        # the chunk_id for example would be 0
         chunk_id = item_path_filename[split_idx + 6:].split('.')[0]
+        
+        # Ensure data and label shapes are as expected
+        print(f"Data shape at index {index}: {data.shape}, Label shape: {label.shape}")
+        
         return data, label, filename, chunk_id
 
     def get_raw_data(self, raw_data_path):
@@ -253,6 +267,7 @@ class BaseLoader(Dataset):
             raise ValueError("Unsupported label type!")
 
         if config_preprocess.DO_CHUNK:  # chunk data into snippets
+            print(f"all labels before chunking: {bvps}")
             frames_clips, bvps_clips = self.chunk(
                 data, bvps, config_preprocess.CHUNK_LENGTH)
         else:
@@ -359,20 +374,29 @@ class BaseLoader(Dataset):
     
             
     def chunk(self, frames, bvps, chunk_length):
-        """Chunk the data into small chunks.
-
-        Args:
-            frames(np.array): video frames.
-            bvps(np.array): blood volumne pulse (PPG) labels.
-            chunk_length(int): the length of each chunk.
-        Returns:
-            frames_clips: all chunks of face cropped frames
-            bvp_clips: all chunks of bvp frames
-        """
-
+        # Assuming bvps always contains 60 labels
+        num_labels = bvps.shape[0]  # Should be 60
         clip_num = frames.shape[0] // chunk_length
         frames_clips = [frames[i * chunk_length:(i + 1) * chunk_length] for i in range(clip_num)]
-        bvps_clips = [bvps[i * chunk_length:(i + 1) * chunk_length] for i in range(clip_num)]
+
+        # Distribute the labels equally across the chunks
+        labels_per_chunk = num_labels // clip_num
+        bvps_clips = []
+
+        for i in range(clip_num):
+            # Calculate the start and end index for labels for each chunk
+            start_idx = i * labels_per_chunk
+            end_idx = start_idx + labels_per_chunk
+
+            # Last chunk gets any remaining labels to ensure all are used
+            if i == clip_num - 1:
+                end_idx = num_labels
+            
+            chunk_labels = bvps[start_idx:end_idx]
+            bvps_clips.append(chunk_labels)
+
+        print(f"Number of chunks: {clip_num}")
+        print(f"content of bvps_clips: {[clip.shape for clip in bvps_clips]}")  # To visualize the distribution
         return np.array(frames_clips), np.array(bvps_clips)
 
     def save(self, frames_clips, bvps_clips, filename):
@@ -398,6 +422,9 @@ class BaseLoader(Dataset):
             np.save(input_path_name, frames_clips[i])
             np.save(label_path_name, bvps_clips[i])
             count += 1
+            # print the value of the label for debugging
+            print(f"Label value: {bvps_clips[i]}")
+            
         return count
 
     def save_multi_process(self, frames_clips, bvps_clips, filename):

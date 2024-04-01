@@ -7,6 +7,7 @@ import scipy
 import scipy.io
 from scipy.signal import butter
 from scipy.sparse import spdiags
+import torch
 
 
 def _next_power_of_2(x):
@@ -98,6 +99,10 @@ def _calculate_SNR(pred_ppg_signal, hr_label, fs=30, low_pass=0.75, high_pass=2.
 
 def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_bandpass=True, hr_method='FFT'):
     """Calculate video-level HR and SNR"""
+    # Ensure predictions is a NumPy array for downstream processing
+    predictions = predictions.cpu().numpy() if isinstance(predictions, torch.Tensor) else predictions
+    labels = labels.cpu().numpy() if isinstance(labels, torch.Tensor) else labels
+    
     if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
         predictions = _detrend(np.cumsum(predictions), 100)
     else:
@@ -113,6 +118,11 @@ def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_b
         hr_pred = _calculate_peak_hr(predictions, fs=fs)
     else:
         raise ValueError('Please use FFT or Peak to calculate your HR.')
-    hr_label = np.mean(labels)
+    
+    print("\nLabels Raw:", labels)
+    hr_label = np.mean(labels)  # Assuming labels are directly HR values
+    print("\nHR Label Calculated:", hr_label)
+
     SNR = _calculate_SNR(predictions, hr_label, fs=fs)
+    print(f'\nHR Label: {hr_label}, HR Pred: {hr_pred}, SNR: {SNR}')
     return hr_label, hr_pred, SNR

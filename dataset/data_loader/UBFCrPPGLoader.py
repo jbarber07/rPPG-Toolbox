@@ -11,6 +11,7 @@ from multiprocessing import Pool, Process, Value, Array, Manager
 
 import cv2
 import numpy as np
+import pandas as pd
 from dataset.data_loader.BaseLoader import BaseLoader
 from tqdm import tqdm
 
@@ -109,8 +110,5 @@ class UBFCrPPGLoader(BaseLoader):
     @staticmethod
     def read_wave(bvp_file):
         """Reads a bvp signal file."""
-        with open(bvp_file, "r") as f:
-            str1 = f.read()
-            str1 = str1.split("\n")
-            bvp = [float(x) for x in str1[0].split()]
+        bvp = np.loadtxt(bvp_file, delimiter=',', usecols=1)
         return np.asarray(bvp)

@@ -34,7 +34,21 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-
+def inspect_first_batch(data_loader):
+    """ Check the labels only of the first batch. The batch is not a dictionary. It's a: <class 'list'>"""
+    first_batch = next(iter(data_loader))
+    if isinstance(first_batch, list):
+        print("The first batch is a list.")
+        print("The labels of the first batch are:")
+        for item in first_batch:
+            if isinstance(item, torch.Tensor):
+                print(item.shape)
+            else:
+                print(item)
+    else:
+        print("The first batch is not a list.")
+    
+    
 def add_args(parser):
     """Adds arguments for parser."""
     parser.add_argument('--config_file', required=False,
@@ -120,6 +134,27 @@ def unsupervised_method_inference(config, data_loader):
         else:
             raise ValueError("Not supported unsupervised method!")
 
+from torch.nn.utils.rnn import pad_sequence
+
+def custom_collate_fn(batch):
+    # Separate the input and labels
+    inputs = [item[0] for item in batch]  # item[0] is a numpy array
+    labels = [item[1] for item in batch]  # item[1] could be a numpy array or a tensor
+
+    # Convert inputs from numpy arrays to PyTorch tensors
+    inputs_tensors = [torch.tensor(input, dtype=torch.float32) for input in inputs]
+
+    # Convert labels from numpy arrays to PyTorch tensors
+    # This conversion is necessary since your labels could be numpy arrays, and pad_sequence expects tensors
+    labels_tensors = [torch.tensor(label, dtype=torch.float32) if isinstance(label, np.ndarray) else label for label in labels]
+
+    # Pad the input tensors to have the same length
+    inputs_padded = pad_sequence(inputs_tensors, batch_first=True)
+
+    # Pad the label tensors to have the same length
+    labels_padded = pad_sequence(labels_tensors, batch_first=True)
+
+    return inputs_padded, labels_padded
 
 if __name__ == "__main__":
     # parse arguments.
@@ -165,14 +200,31 @@ if __name__ == "__main__":
                 name="train",
                 data_path=config.TRAIN.DATA.DATA_PATH,
                 config_data=config.TRAIN.DATA)
+            # # Inspect the first few items directly from the dataset
+            # for i in range(5):
+            #     item = train_data_loader[i]
+            #     print(f"Item {i}: Type: {type(item)}")
+            #     if isinstance(item, (list, tuple)):
+            #         # Assuming item is a tuple of (input, label)
+            #         print(f"Input Shape: {item[0].shape}, Label: {item[1]}")
+            #     elif isinstance(item, dict):
+            #         # If your dataset returns a dictionary, adjust the keys accordingly
+            #         print(f"Keys: {item.keys()}")
+            #         print(f"Input Shape: {item['input'].shape}, Label: {item['label']}")
+            #     else:
+            #         print(f"Item content: {item}")
+                    
+                
             data_loader_dict['train'] = DataLoader(
                 dataset=train_data_loader,
-                num_workers=16,
+                num_workers=16, # 0 for debugging
                 batch_size=config.TRAIN.BATCH_SIZE,
                 shuffle=True,
                 worker_init_fn=seed_worker,
-                generator=train_generator
+                generator=train_generator,
+                collate_fn=custom_collate_fn
             )
+            
         else:
             data_loader_dict['train'] = None
 
@@ -212,10 +264,12 @@ if __name__ == "__main__":
                 batch_size=config.TRAIN.BATCH_SIZE,  # batch size for val is the same as train
                 shuffle=False,
                 worker_init_fn=seed_worker,
-                generator=general_generator
+                generator=general_generator,
+                collate_fn=custom_collate_fn
             )
         else:
             data_loader_dict['valid'] = None
+            print(f"Here is the reason why the validation dataset is not required: {config.TEST.USE_LAST_EPOCH}", end='\n\n')
 
     if config.TOOLBOX_MODE == "train_and_test" or config.TOOLBOX_MODE == "only_test":
         # test_loader
@@ -255,7 +309,8 @@ if __name__ == "__main__":
                 batch_size=config.INFERENCE.BATCH_SIZE,
                 shuffle=False,
                 worker_init_fn=seed_worker,
-                generator=general_generator
+                generator=general_generator,
+                collate_fn=custom_collate_fn
             )
         else:
             data_loader_dict['test'] = None
@@ -299,6 +354,7 @@ if __name__ == "__main__":
         raise ValueError("Unsupported toolbox_mode! Currently support train_and_test or only_test or unsupervised_method.")
 
     if config.TOOLBOX_MODE == "train_and_test":
+        # inspect_first_batch(data_loader_dict['train'])
         train_and_test(config, data_loader_dict)
     elif config.TOOLBOX_MODE == "only_test":
         test(config, data_loader_dict)
