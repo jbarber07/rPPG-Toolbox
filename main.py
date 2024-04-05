@@ -221,8 +221,7 @@ if __name__ == "__main__":
                 batch_size=config.TRAIN.BATCH_SIZE,
                 shuffle=True,
                 worker_init_fn=seed_worker,
-                generator=train_generator,
-                collate_fn=custom_collate_fn
+                generator=train_generator
             )
             
         else:
@@ -264,8 +263,7 @@ if __name__ == "__main__":
                 batch_size=config.TRAIN.BATCH_SIZE,  # batch size for val is the same as train
                 shuffle=False,
                 worker_init_fn=seed_worker,
-                generator=general_generator,
-                collate_fn=custom_collate_fn
+                generator=general_generator
             )
         else:
             data_loader_dict['valid'] = None
@@ -309,9 +307,8 @@ if __name__ == "__main__":
                 batch_size=config.INFERENCE.BATCH_SIZE,
                 shuffle=False,
                 worker_init_fn=seed_worker,
-                generator=general_generator,
-                collate_fn=custom_collate_fn
-            )
+                generator=general_generator
+                )
         else:
             data_loader_dict['test'] = None
 

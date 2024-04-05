@@ -3,7 +3,6 @@
 import logging
 import os
 from collections import OrderedDict
-from torch.nn.utils.rnn import pad_sequence
 
 import numpy as np
 import torch
@@ -50,22 +49,6 @@ class TscanTrainer(BaseTrainer):
         else:
             raise ValueError("TS-CAN trainer initialized in incorrect toolbox mode!")
 
-    def aggregate_predictions(self, pred_ppg, total_labels=60):
-        # Calculate the number of frames each label should represent
-        frames_per_label = pred_ppg.size(0) // total_labels
-        
-        # Initialize an empty tensor for aggregated predictions
-        aggregated_pred_ppg = torch.zeros(total_labels, 1, device=pred_ppg.device)
-        
-        for i in range(total_labels):
-            start = i * frames_per_label
-            end = start + frames_per_label
-            # Aggregate predictions within this range
-            aggregated_pred_ppg[i] = pred_ppg[start:end].mean()
-            
-        return aggregated_pred_ppg
-
-
     def train(self, data_loader):
         """Training routine for model"""
         if data_loader["train"] is None:
@@ -83,22 +66,19 @@ class TscanTrainer(BaseTrainer):
             tbar = tqdm(data_loader["train"], ncols=80)
             for idx, batch in enumerate(tbar):
                 tbar.set_description("Train epoch %s" % epoch)
-                data, labels = batch[0].to(self.device), batch[1].to(self.device)
+                data, labels = batch[0].to(
+                    self.device), batch[1].to(self.device)
+                saved_label_shape = labels.shape
+                print(f"\n content of labels: {labels[0]}")
                 N, D, C, H, W = data.shape
-                # check if the tensor is in the correct shape
-                # print(f"\nFirst 10 labels of the tensor: {labels[:10]}")
                 data = data.view(N * D, C, H, W)
                 labels = labels.view(-1, 1)
                 data = data[:(N * D) // self.base_len * self.base_len]
                 labels = labels[:(N * D) // self.base_len * self.base_len]
                 self.optimizer.zero_grad()
                 pred_ppg = self.model(data)
-                aggregated_pred_ppg = self.aggregate_predictions(pred_ppg)
-                print(f"\n Labels content: {labels}")
-
-                print(f"\npred_ppg shape: {aggregated_pred_ppg.shape}")  # Expected to be [batch_size, sequence_length, ...]
-                print(f"\nlabels shape: {labels.shape}")  # Should match pred_ppg's shape in relevant dimensions
-                loss = self.criterion(aggregated_pred_ppg, labels)
+                print(f"\npred_ppg shape: {pred_ppg.shape}, labels shape: {saved_label_shape}")
+                loss = self.criterion(pred_ppg, labels)
                 loss.backward()
 
                 # Append the current learning rate to the list
@@ -168,7 +148,7 @@ class TscanTrainer(BaseTrainer):
         """ Model evaluation on the testing dataset."""
         if data_loader["test"] is None:
             raise ValueError("No data for test")
-        
+
         print('')
         print("===Testing===")
         predictions = dict()
@@ -177,7 +157,7 @@ class TscanTrainer(BaseTrainer):
         if self.config.TOOLBOX_MODE == "only_test":
             if not os.path.exists(self.config.INFERENCE.MODEL_PATH):
                 raise ValueError("Inference model path error! Please check INFERENCE.MODEL_PATH in your yaml.")
-            self.model.load_state_dict(torch.load(self.config.INFERENCE.MODEL_PATH,map_location=torch.device('cpu')))
+            self.model.load_state_dict(torch.load(self.config.INFERENCE.MODEL_PATH))
             print("Testing uses pretrained model!")
         else:
             if self.config.TEST.USE_LAST_EPOCH:
@@ -185,13 +165,13 @@ class TscanTrainer(BaseTrainer):
                 self.model_dir, self.model_file_name + '_Epoch' + str(self.max_epoch_num - 1) + '.pth')
                 print("Testing uses last epoch as non-pretrained model!")
                 print(last_epoch_model_path)
-                self.model.load_state_dict(torch.load(last_epoch_model_path, map_location=torch.device('cpu')))
+                self.model.load_state_dict(torch.load(last_epoch_model_path))
             else:
                 best_model_path = os.path.join(
                     self.model_dir, self.model_file_name + '_Epoch' + str(self.best_epoch) + '.pth')
                 print("Testing uses best epoch selected using model selection as non-pretrained model!")
                 print(best_model_path)
-                self.model.load_state_dict(torch.load(best_model_path, map_location=torch.device('cpu')))
+                self.model.load_state_dict(torch.load(best_model_path))
 
         self.model = self.model.to(self.config.DEVICE)
         self.model.eval()
