@@ -68,8 +68,6 @@ class TscanTrainer(BaseTrainer):
                 tbar.set_description("Train epoch %s" % epoch)
                 data, labels = batch[0].to(
                     self.device), batch[1].to(self.device)
-                saved_label_shape = labels.shape
-                print(f"\n content of labels: {labels[0]}")
                 N, D, C, H, W = data.shape
                 data = data.view(N * D, C, H, W)
                 labels = labels.view(-1, 1)
@@ -77,7 +75,6 @@ class TscanTrainer(BaseTrainer):
                 labels = labels[:(N * D) // self.base_len * self.base_len]
                 self.optimizer.zero_grad()
                 pred_ppg = self.model(data)
-                print(f"\npred_ppg shape: {pred_ppg.shape}, labels shape: {saved_label_shape}")
                 loss = self.criterion(pred_ppg, labels)
                 loss.backward()
 

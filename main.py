@@ -134,28 +134,6 @@ def unsupervised_method_inference(config, data_loader):
         else:
             raise ValueError("Not supported unsupervised method!")
 
-from torch.nn.utils.rnn import pad_sequence
-
-def custom_collate_fn(batch):
-    # Separate the input and labels
-    inputs = [item[0] for item in batch]  # item[0] is a numpy array
-    labels = [item[1] for item in batch]  # item[1] could be a numpy array or a tensor
-
-    # Convert inputs from numpy arrays to PyTorch tensors
-    inputs_tensors = [torch.tensor(input, dtype=torch.float32) for input in inputs]
-
-    # Convert labels from numpy arrays to PyTorch tensors
-    # This conversion is necessary since your labels could be numpy arrays, and pad_sequence expects tensors
-    labels_tensors = [torch.tensor(label, dtype=torch.float32) if isinstance(label, np.ndarray) else label for label in labels]
-
-    # Pad the input tensors to have the same length
-    inputs_padded = pad_sequence(inputs_tensors, batch_first=True)
-
-    # Pad the label tensors to have the same length
-    labels_padded = pad_sequence(labels_tensors, batch_first=True)
-
-    return inputs_padded, labels_padded
-
 if __name__ == "__main__":
     # parse arguments.
     parser = argparse.ArgumentParser()
@@ -200,24 +178,11 @@ if __name__ == "__main__":
                 name="train",
                 data_path=config.TRAIN.DATA.DATA_PATH,
                 config_data=config.TRAIN.DATA)
-            # # Inspect the first few items directly from the dataset
-            # for i in range(5):
-            #     item = train_data_loader[i]
-            #     print(f"Item {i}: Type: {type(item)}")
-            #     if isinstance(item, (list, tuple)):
-            #         # Assuming item is a tuple of (input, label)
-            #         print(f"Input Shape: {item[0].shape}, Label: {item[1]}")
-            #     elif isinstance(item, dict):
-            #         # If your dataset returns a dictionary, adjust the keys accordingly
-            #         print(f"Keys: {item.keys()}")
-            #         print(f"Input Shape: {item['input'].shape}, Label: {item['label']}")
-            #     else:
-            #         print(f"Item content: {item}")
-                    
+            
                 
             data_loader_dict['train'] = DataLoader(
                 dataset=train_data_loader,
-                num_workers=16, # 0 for debugging
+                num_workers=16, 
                 batch_size=config.TRAIN.BATCH_SIZE,
                 shuffle=True,
                 worker_init_fn=seed_worker,
