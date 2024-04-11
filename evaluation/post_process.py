@@ -99,30 +99,26 @@ def _calculate_SNR(pred_ppg_signal, hr_label, fs=30, low_pass=0.75, high_pass=2.
 
 def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_bandpass=True, hr_method='FFT'):
     """Calculate video-level HR and SNR"""
-    # Ensure predictions is a NumPy array for downstream processing
-    predictions = predictions.cpu().numpy() if isinstance(predictions, torch.Tensor) else predictions
-    labels = labels.cpu().numpy() if isinstance(labels, torch.Tensor) else labels
-    
     if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
         predictions = _detrend(np.cumsum(predictions), 100)
+        labels = _detrend(np.cumsum(labels), 100)
     else:
         predictions = _detrend(predictions, 100)
+        labels = _detrend(labels, 100)
     if use_bandpass:
         # bandpass filter between [0.75, 2.5] Hz
         # equals [45, 150] beats per min
         [b, a] = butter(1, [0.75 / fs * 2, 2.5 / fs * 2], btype='bandpass')
         predictions = scipy.signal.filtfilt(b, a, np.double(predictions))
+        labels = scipy.signal.filtfilt(b, a, np.double(labels))
     if hr_method == 'FFT':
         hr_pred = _calculate_fft_hr(predictions, fs=fs)
+        hr_label = _calculate_fft_hr(labels, fs=fs)
     elif hr_method == 'Peak':
         hr_pred = _calculate_peak_hr(predictions, fs=fs)
+        hr_label = _calculate_peak_hr(labels, fs=fs)
     else:
         raise ValueError('Please use FFT or Peak to calculate your HR.')
-    
-    print("\nLabels Raw:", labels)
-    hr_label = np.mean(labels)  # Assuming labels are directly HR values
-    print("\nHR Label Calculated:", hr_label)
-
     SNR = _calculate_SNR(predictions, hr_label, fs=fs)
-    print(f'\nHR Label: {hr_label}, HR Pred: {hr_pred}, SNR: {SNR}')
+    print(f'HR_label: {hr_label}, HR_pred: {hr_pred}, SNR: {SNR}')
     return hr_label, hr_pred, SNR

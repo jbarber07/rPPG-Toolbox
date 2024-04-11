@@ -82,6 +82,7 @@ class VUBrPPGLoader(BaseLoader):
         if config_preprocess.USE_PSUEDO_PPG_LABEL:
             bvps = self.generate_pos_psuedo_labels(frames, fs=self.config_data.FS)
         else:
+            print(f"NOT USING PSEUDO PPG LABELS")
             bvps = self.read_wave(
                 os.path.join(data_dirs[i]['path'],"ground_truth.xlsx"))
         
