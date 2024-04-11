@@ -8,6 +8,8 @@ preprocessed
 store_model
 store_physnet_model
 PreprocessedData
+PreTrainedModels
+runs
 temp
 facial_region_test.py
 interp_test.py
