@@ -13,6 +13,7 @@ from neural_methods.model.EfficientPhys import EfficientPhys
 from neural_methods.trainer.BaseTrainer import BaseTrainer
 from tqdm import tqdm
 
+from torch.utils.tensorboard import SummaryWriter
 
 class EfficientPhysTrainer(BaseTrainer):
 
@@ -182,8 +183,15 @@ class EfficientPhysTrainer(BaseTrainer):
         self.model = self.model.to(self.config.DEVICE)
         self.model.eval()
         print("Running model evaluation on the testing dataset!")
+        # TensorBoard setup
+        #check if the directory exists
+        if not os.path.exists('./logs/inference_metrics/EFFICIENTPHYS'):
+            os.makedirs('./logs/inference_metrics/EFFICIENTPHYS')
+
+        writer = SummaryWriter(log_dir='./logs/inference_metrics/EFFICIENTPHYS')
+
         with torch.no_grad():
-            for _, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
+            for batch_index, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
                 batch_size = test_batch[0].shape[0]
                 data_test, labels_test = test_batch[0].to(
                     self.config.DEVICE), test_batch[1].to(self.config.DEVICE)
@@ -195,8 +203,26 @@ class EfficientPhysTrainer(BaseTrainer):
                 last_frame = torch.unsqueeze(data_test[-1, :, :, :], 0).repeat(self.num_of_gpu, 1, 1, 1)
                 data_test = torch.cat((data_test, last_frame), 0)
                 labels_test = labels_test[:(N * D) // self.base_len * self.base_len]
+                
+                # Start profiling
+                torch.cuda.synchronize()
+                start_time = torch.cuda.Event(enable_timing=True)
+                end_time = torch.cuda.Event(enable_timing=True)
+                start_time.record()
+
                 pred_ppg_test = self.model(data_test)
 
+                end_time.record()
+                torch.cuda.synchronize()  # Wait for the events to be recorded!
+                inference_time = start_time.elapsed_time(end_time)  # Time in milliseconds
+                
+                # Memory usage (current memory allocated)
+                memory_usage = torch.cuda.memory_allocated() / (1024 ** 2)  # Convert to Megabytes
+
+                # Logging to TensorBoard
+                writer.add_scalar('Inference Time (ms)', inference_time, batch_index)
+                writer.add_scalar('Memory Usage (MB)', memory_usage, batch_index)
+                
                 if self.config.TEST.OUTPUT_SAVE_DIR:
                     labels_test = labels_test.cpu()
                     pred_ppg_test = pred_ppg_test.cpu()
@@ -209,7 +235,7 @@ class EfficientPhysTrainer(BaseTrainer):
                         labels[subj_index] = dict()
                     predictions[subj_index][sort_index] = pred_ppg_test[idx * self.chunk_len:(idx + 1) * self.chunk_len]
                     labels[subj_index][sort_index] = labels_test[idx * self.chunk_len:(idx + 1) * self.chunk_len]
-
+        writer.close()
         print('')
         calculate_metrics(predictions, labels, self.config)
         if self.config.TEST.OUTPUT_SAVE_DIR: # saving test outputs

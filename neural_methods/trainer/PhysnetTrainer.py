@@ -11,6 +11,7 @@ from neural_methods.model.PhysNet import PhysNet_padding_Encoder_Decoder_MAX
 from neural_methods.trainer.BaseTrainer import BaseTrainer
 from torch.autograd import Variable
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
 
 class PhysnetTrainer(BaseTrainer):
@@ -169,13 +170,37 @@ class PhysnetTrainer(BaseTrainer):
         self.model = self.model.to(self.config.DEVICE)
         self.model.eval()
         print("Running model evaluation on the testing dataset!")
+        # TensorBoard setup
+        #check if the directory exists
+        if not os.path.exists('./logs/inference_metrics/PHYSNET'):
+            os.makedirs('./logs/inference_metrics/PHYSNET')
+
+        writer = SummaryWriter(log_dir='./logs/inference_metrics/PHYSNET', filename_suffix='PHYSNET')
+        
         with torch.no_grad():
-            for _, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
+            for batch_index, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
                 batch_size = test_batch[0].shape[0]
                 data, label = test_batch[0].to(
                     self.config.DEVICE), test_batch[1].to(self.config.DEVICE)
+                # Start profiling
+                torch.cuda.synchronize()
+                start_time = torch.cuda.Event(enable_timing=True)
+                end_time = torch.cuda.Event(enable_timing=True)
+                start_time.record()
+
                 pred_ppg_test, _, _, _ = self.model(data)
 
+                end_time.record()
+                torch.cuda.synchronize()  # Wait for the events to be recorded!
+                inference_time = start_time.elapsed_time(end_time)  # Time in milliseconds
+                
+                # Memory usage (current memory allocated)
+                memory_usage = torch.cuda.memory_allocated() / (1024 ** 2)  # Convert to Megabytes
+
+                # Logging to TensorBoard
+                writer.add_scalar('Inference Time (ms)', inference_time, batch_index)
+                writer.add_scalar('Memory Usage (MB)', memory_usage, batch_index)
+                
                 if self.config.TEST.OUTPUT_SAVE_DIR:
                     label = label.cpu()
                     pred_ppg_test = pred_ppg_test.cpu()
@@ -188,7 +213,8 @@ class PhysnetTrainer(BaseTrainer):
                         labels[subj_index] = dict()
                     predictions[subj_index][sort_index] = pred_ppg_test[idx]
                     labels[subj_index][sort_index] = label[idx]
-
+        
+        writer.close()
         print('')
         calculate_metrics(predictions, labels, self.config)
         if self.config.TEST.OUTPUT_SAVE_DIR: # saving test outputs 
