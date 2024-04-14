@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from dataset.data_loader.BaseLoader import BaseLoader
 from tqdm import tqdm
+import imgaug.augmenters as iaa
 
 
 class VUBrPPGLoader(BaseLoader):
@@ -58,37 +59,74 @@ class VUBrPPGLoader(BaseLoader):
             data_dirs_new.append(data_dirs[i])
 
         return data_dirs_new
+    
+    def augment_frames(self, frames):
+        seq = iaa.Sequential([
+            iaa.Fliplr(0.5),  # Horizontally flip half of the frames
+            iaa.Affine(
+                rotate=(-10, 10)  # Mild rotation
+            ),
+            # iaa.Affine(scale={"x": (0.95, 1.05), "y": (0.95, 1.05)})  # Mild scaling
+        ], random_order=True)  # Apply augmenters in random order
+
+        if isinstance(frames, np.ndarray):
+            frames_list = [frames[i] for i in range(frames.shape[0])]
+        else:
+            frames_list = frames
+
+        augmented_frames = seq(images=frames_list)
+
+        if not all(frame.ndim == 3 and frame.shape[2] == 3 for frame in augmented_frames):
+            raise ValueError("Augmentation has produced frames with incorrect dimensions.")
+
+        if isinstance(augmented_frames, list):
+            augmented_frames = np.array(augmented_frames, dtype=np.uint8)
+
+        return augmented_frames
+
 
     def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict):
-        """ invoked by preprocess_dataset for multi_process."""
         filename = os.path.split(data_dirs[i]['path'])[-1]
         saved_filename = data_dirs[i]['index']
 
-        # Read Frames
-        if 'None' in config_preprocess.DATA_AUG:
-            # Utilize dataset-specific function to read video
-            frames = self.read_video(
-                os.path.join(data_dirs[i]['path'],"vid.mp4"))
-        elif 'Motion' in config_preprocess.DATA_AUG:
-            # Utilize general function to read video in .npy format
-            frames = self.read_npy_video(
-                glob.glob(os.path.join(data_dirs[i]['path'],'*.npy')))
-        else:
-            raise ValueError(f'Unsupported DATA_AUG specified for {self.dataset_name} dataset! Received {config_preprocess.DATA_AUG}.')
-        if len(frames) == 0:
+        # Read and validate original frames
+        original_frames = self.read_video(os.path.join(data_dirs[i]['path'], "vid.mp4"))
+        if original_frames is None or len(original_frames) == 0:
             raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/vid.mp4")
-        
-        # Read Labels
+
+        if not isinstance(original_frames, np.ndarray) or original_frames.ndim != 4 or original_frames.shape[-1] != 3:
+            raise ValueError("Original frames must be a 4D numpy array with shape (num_frames, H, W, 3)")
+
+        frames_to_process = [original_frames]  # Start with original frames
+
+        # Apply augmentation if enabled and add to processing list
+        if 'AUGMENT' in config_preprocess.DATA_AUG:
+            augmented_frames = self.augment_frames(original_frames.copy())
+            if any(frame.ndim != 3 or frame.shape[-1] != 3 for frame in augmented_frames):
+                raise ValueError("Augmented frames have incorrect dimensions")
+            frames_to_process.append(augmented_frames)  # Include augmented frames
+
+        all_input_names = []
+
+        # Read labels once, apply to both original and augmented frames
         if config_preprocess.USE_PSUEDO_PPG_LABEL:
-            bvps = self.generate_pos_psuedo_labels(frames, fs=self.config_data.FS)
+            bvps = self.generate_pos_psuedo_labels(original_frames, fs=self.config_data.FS)
         else:
-            print(f"NOT USING PSEUDO PPG LABELS")
-            bvps = self.read_wave(
-                os.path.join(data_dirs[i]['path'],"ground_truth.xlsx"))
-        
-        frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
-        input_name_list, label_name_list = self.save_multi_process(frames_clips, bvps_clips, saved_filename)
-        file_list_dict[i] = input_name_list
+            bvps = self.read_wave(os.path.join(data_dirs[i]['path'], "ground_truth.xlsx"))
+
+        # Process each set of frames (original and possibly augmented)
+        for frames in frames_to_process:
+            frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
+            input_name_list, _ = self.save_multi_process(frames_clips, bvps_clips, saved_filename)
+
+            all_input_names.extend(input_name_list)
+
+        # Save processed input data path names to dictionary
+        file_list_dict[i] = all_input_names
+
+        return file_list_dict
+
+
 
     @staticmethod
     def read_video(video_file):
