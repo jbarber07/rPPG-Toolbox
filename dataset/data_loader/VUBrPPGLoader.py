@@ -133,14 +133,31 @@ class VUBrPPGLoader(BaseLoader):
         """Reads a video file, returns frames(T, H, W, 3) """
         VidObj = cv2.VideoCapture(video_file)
         VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
-        success, frame = VidObj.read()
+        success, init_frame = VidObj.read()
         frames = list()
         while success:
-            frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
-            frame = np.asarray(frame)
-            frame = frame[:, frame.shape[1]//2:] # remove the pulse oximeter from the video
-            frames.append(frame)
-            success, frame = VidObj.read()
+            init_frame = init_frame[:, init_frame.shape[1]//2:] # remove the pulse oximeter from the video
+            #converting from gbr to hsv color space
+            img_HSV = cv2.cvtColor(init_frame, cv2.COLOR_BGR2HSV)
+            #skin color range for hsv color space 
+            HSV_mask = cv2.inRange(img_HSV, (0, 15, 0), (17,170,255)) 
+            HSV_mask = cv2.morphologyEx(HSV_mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
+
+            #converting from gbr to YCbCr color space
+            img_YCrCb = cv2.cvtColor(init_frame, cv2.COLOR_BGR2YCrCb)
+            #skin color range for hsv color space 
+            YCrCb_mask = cv2.inRange(img_YCrCb, (0, 135, 85), (255,180,135)) 
+            YCrCb_mask = cv2.morphologyEx(YCrCb_mask, cv2.MORPH_OPEN, np.ones((3,3), np.uint8))
+
+            #merge skin detection (YCbCr and hsv)
+            global_mask=cv2.bitwise_and(YCrCb_mask,HSV_mask)
+            global_mask=cv2.medianBlur(global_mask,3)
+            global_mask = cv2.morphologyEx(global_mask, cv2.MORPH_OPEN, np.ones((4,4), np.uint8))
+
+            masked_img = cv2.bitwise_and(init_frame, init_frame, mask=global_mask)
+            masked_img = cv2.cvtColor(masked_img, cv2.COLOR_BGR2RGB)
+            frames.append(masked_img)
+            success, init_frame = VidObj.read()
         return np.asarray(frames)
     
     @staticmethod
