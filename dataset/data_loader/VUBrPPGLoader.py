@@ -86,19 +86,14 @@ class VUBrPPGLoader(BaseLoader):
 
 
     def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict):
-        filename = os.path.split(data_dirs[i]['path'])[-1]
+        filename = data_dirs[i]['path']
         saved_filename = data_dirs[i]['index']
-
         # Read and validate original frames
-        original_frames = self.read_video(os.path.join(data_dirs[i]['path'], "vid.mp4"))
+        original_frames = self.read_video(os.path.join(filename, "vid.mp4"))
         if original_frames is None or len(original_frames) == 0:
             raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/vid.mp4")
 
-        if not isinstance(original_frames, np.ndarray) or original_frames.ndim != 4 or original_frames.shape[-1] != 3:
-            raise ValueError("Original frames must be a 4D numpy array with shape (num_frames, H, W, 3)")
-
         frames_to_process = [original_frames]  # Start with original frames
-
         # Apply augmentation if enabled and add to processing list
         if 'AUGMENT' in config_preprocess.DATA_AUG:
             augmented_frames = self.augment_frames(original_frames.copy())
@@ -112,7 +107,7 @@ class VUBrPPGLoader(BaseLoader):
         if config_preprocess.USE_PSUEDO_PPG_LABEL:
             bvps = self.generate_pos_psuedo_labels(original_frames, fs=self.config_data.FS)
         else:
-            bvps = self.read_wave(os.path.join(data_dirs[i]['path'], "ground_truth.xlsx"))
+            bvps = self.read_wave(os.path.join(filename,  "ground_truth.xlsx"))
 
         # Process each set of frames (original and possibly augmented)
         for frames in frames_to_process:
