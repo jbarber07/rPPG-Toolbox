@@ -240,8 +240,15 @@ class PhysFormerTrainer(BaseTrainer):
             os.makedirs('./logs/inference_metrics/PHYSFORMER')
 
         writer = SummaryWriter(log_dir='./logs/inference_metrics/PHYSFORMER', comment='PHYSFORMER', filename_suffix='PHYSFORMER')
+        # Measure model size
+        model_size = os.path.getsize(self.config.INFERENCE.MODEL_PATH) / (1024 * 1024)  # Size in Megabytes
+        print(f"Model size: {model_size:.2f} MB")
+        
+        # Add model size to writer
+        writer.add_scalar('Model Size (MB)', model_size)
         
         with torch.no_grad():
+            peak_memory_usage_before = torch.cuda.max_memory_allocated()  # Capture peak memory before inference starts
             for batch_index, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
                 batch_size = test_batch[0].shape[0]
                 data, label = test_batch[0].to(
@@ -259,13 +266,13 @@ class PhysFormerTrainer(BaseTrainer):
                 torch.cuda.synchronize()  # Wait for the events to be recorded!
                 inference_time = start_time.elapsed_time(end_time)  # Time in milliseconds
                 
-                # Memory usage (current memory allocated)
-                memory_usage = torch.cuda.memory_allocated() / (1024 ** 2)  # Convert to Megabytes
+                peak_memory_usage_after = torch.cuda.max_memory_allocated()  # Capture peak memory after inference
+                peak_memory_usage = (peak_memory_usage_after - peak_memory_usage_before) / (1024 ** 2)  # Convert to MB
 
                 # Logging to TensorBoard
                 writer.add_scalar('Inference Time (ms)', inference_time, batch_index)
-                writer.add_scalar('Memory Usage (MB)', memory_usage, batch_index)
-                
+                writer.add_scalar('Peak Memory Usage (MB)', peak_memory_usage, batch_index)
+
                 for idx in range(batch_size):
                     subj_index = test_batch[2][idx]
                     sort_index = int(test_batch[3][idx])

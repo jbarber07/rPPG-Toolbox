@@ -179,7 +179,15 @@ class DeepPhysTrainer(BaseTrainer):
 
         writer = SummaryWriter(log_dir='./logs/inference_metrics/DEEPPHYS', filename_suffix='DEEPPHYS')
         
+        # Measure model size
+        model_size = os.path.getsize(self.config.INFERENCE.MODEL_PATH) / (1024 * 1024)  # Size in Megabytes
+        print(f"Model size: {model_size:.2f} MB")
+        
+        # Add model size to writer
+        writer.add_scalar('Model Size (MB)', model_size)
+        
         with torch.no_grad():
+            peak_memory_usage_before = torch.cuda.max_memory_allocated()  # Capture peak memory before inference starts
             for batch_index, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
                 batch_size = test_batch[0].shape[0]
                 data_test, labels_test = test_batch[0].to(
@@ -199,13 +207,13 @@ class DeepPhysTrainer(BaseTrainer):
                 torch.cuda.synchronize()  # Wait for the events to be recorded!
                 inference_time = start_time.elapsed_time(end_time)  # Time in milliseconds
                 
-                # Memory usage (current memory allocated)
-                memory_usage = torch.cuda.memory_allocated() / (1024 ** 2)  # Convert to Megabytes
+                peak_memory_usage_after = torch.cuda.max_memory_allocated()  # Capture peak memory after inference
+                peak_memory_usage = (peak_memory_usage_after - peak_memory_usage_before) / (1024 ** 2)  # Convert to MB
 
                 # Logging to TensorBoard
                 writer.add_scalar('Inference Time (ms)', inference_time, batch_index)
-                writer.add_scalar('Memory Usage (MB)', memory_usage, batch_index)
-                
+                writer.add_scalar('Peak Memory Usage (MB)', peak_memory_usage, batch_index)
+
                 if self.config.TEST.OUTPUT_SAVE_DIR:
                     labels_test = labels_test.cpu()
                     pred_ppg_test = pred_ppg_test.cpu()

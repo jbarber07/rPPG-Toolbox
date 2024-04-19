@@ -9,7 +9,7 @@ TRAIN:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: False               # if first time, should be true
+    DO_PREPROCESS: True               # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -39,7 +39,7 @@ VALID:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: False                  # if first time, should be true
+    DO_PREPROCESS: True                  # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -71,7 +71,7 @@ TEST:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: False                    # if first time, should be true
+    DO_PREPROCESS: True                    # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
