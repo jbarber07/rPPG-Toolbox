@@ -233,9 +233,10 @@ class TscanTrainer(BaseTrainer):
 
         print('')
         writer.close()
-        calculate_metrics(predictions, labels, self.config)
+        gt_hr_fft_all, predict_hr_fft_all = calculate_metrics(predictions, labels, self.config)
         if self.config.TEST.OUTPUT_SAVE_DIR:  # saving test outputs
             self.save_test_outputs(predictions, labels, self.config)
+        return gt_hr_fft_all, predict_hr_fft_all
 
     def save_model(self, index):
         if not os.path.exists(self.model_dir):

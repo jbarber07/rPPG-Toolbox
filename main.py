@@ -112,7 +112,8 @@ def test(config, data_loader_dict):
         model_trainer = trainer.PhysFormerTrainer.PhysFormerTrainer(config, data_loader_dict)
     else:
         raise ValueError('Your Model is Not Supported  Yet!')
-    model_trainer.test(data_loader_dict)
+    gt_hr_fft_all, predict_hr_fft_all = model_trainer.test(data_loader_dict)
+    return gt_hr_fft_all, predict_hr_fft_all
 
 
 def unsupervised_method_inference(config, data_loader):
@@ -152,18 +153,6 @@ if __name__ == "__main__":
         # train_loader
         if config.TRAIN.DATA.DATASET == "UBFC-rPPG":
             train_loader = data_loader.UBFCrPPGLoader.UBFCrPPGLoader
-        elif config.TRAIN.DATA.DATASET == "PURE":
-            train_loader = data_loader.PURELoader.PURELoader
-        elif config.TRAIN.DATA.DATASET == "SCAMPS":
-            train_loader = data_loader.SCAMPSLoader.SCAMPSLoader
-        elif config.TRAIN.DATA.DATASET == "MMPD":
-            train_loader = data_loader.MMPDLoader.MMPDLoader
-        elif config.TRAIN.DATA.DATASET == "BP4DPlus":
-            train_loader = data_loader.BP4DPlusLoader.BP4DPlusLoader
-        elif config.TRAIN.DATA.DATASET == "BP4DPlusBigSmall":
-            train_loader = data_loader.BP4DPlusBigSmallLoader.BP4DPlusBigSmallLoader
-        elif config.TRAIN.DATA.DATASET == "UBFC-PHYS":
-            train_loader = data_loader.UBFCPHYSLoader.UBFCPHYSLoader
         elif config.TRAIN.DATA.DATASET == "VUB-rPPG":
             train_loader = data_loader.VUBrPPGLoader.VUBrPPGLoader
         else:
@@ -195,18 +184,6 @@ if __name__ == "__main__":
         # valid_loader
         if config.VALID.DATA.DATASET == "UBFC-rPPG":
             valid_loader = data_loader.UBFCrPPGLoader.UBFCrPPGLoader
-        elif config.VALID.DATA.DATASET == "PURE":
-            valid_loader = data_loader.PURELoader.PURELoader
-        elif config.VALID.DATA.DATASET == "SCAMPS":
-            valid_loader = data_loader.SCAMPSLoader.SCAMPSLoader
-        elif config.VALID.DATA.DATASET == "MMPD":
-            valid_loader = data_loader.MMPDLoader.MMPDLoader
-        elif config.VALID.DATA.DATASET == "BP4DPlus":
-            valid_loader = data_loader.BP4DPlusLoader.BP4DPlusLoader
-        elif config.VALID.DATA.DATASET == "BP4DPlusBigSmall":
-            valid_loader = data_loader.BP4DPlusBigSmallLoader.BP4DPlusBigSmallLoader
-        elif config.VALID.DATA.DATASET == "UBFC-PHYS":
-            valid_loader = data_loader.UBFCPHYSLoader.UBFCPHYSLoader
         elif config.VALID.DATA.DATASET == "VUB-rPPG":
             valid_loader = data_loader.VUBrPPGLoader.VUBrPPGLoader
         elif config.VALID.DATA.DATASET is None and not config.TEST.USE_LAST_EPOCH:
@@ -238,18 +215,6 @@ if __name__ == "__main__":
         # test_loader
         if config.TEST.DATA.DATASET == "UBFC-rPPG":
             test_loader = data_loader.UBFCrPPGLoader.UBFCrPPGLoader
-        elif config.TEST.DATA.DATASET == "PURE":
-            test_loader = data_loader.PURELoader.PURELoader
-        elif config.TEST.DATA.DATASET == "SCAMPS":
-            test_loader = data_loader.SCAMPSLoader.SCAMPSLoader
-        elif config.TEST.DATA.DATASET == "MMPD":
-            test_loader = data_loader.MMPDLoader.MMPDLoader
-        elif config.TEST.DATA.DATASET == "BP4DPlus":
-            test_loader = data_loader.BP4DPlusLoader.BP4DPlusLoader
-        elif config.TEST.DATA.DATASET == "BP4DPlusBigSmall":
-            test_loader = data_loader.BP4DPlusBigSmallLoader.BP4DPlusBigSmallLoader
-        elif config.TEST.DATA.DATASET == "UBFC-PHYS":
-            test_loader = data_loader.UBFCPHYSLoader.UBFCPHYSLoader
         elif config.TEST.DATA.DATASET == "VUB-rPPG":
             test_loader = data_loader.VUBrPPGLoader.VUBrPPGLoader
         else:
@@ -281,16 +246,6 @@ if __name__ == "__main__":
         # unsupervised method dataloader
         if config.UNSUPERVISED.DATA.DATASET == "UBFC-rPPG":
             unsupervised_loader = data_loader.UBFCrPPGLoader.UBFCrPPGLoader
-        elif config.UNSUPERVISED.DATA.DATASET == "PURE":
-            unsupervised_loader = data_loader.PURELoader.PURELoader
-        elif config.UNSUPERVISED.DATA.DATASET == "SCAMPS":
-            unsupervised_loader = data_loader.SCAMPSLoader.SCAMPSLoader
-        elif config.UNSUPERVISED.DATA.DATASET == "MMPD":
-            unsupervised_loader = data_loader.MMPDLoader.MMPDLoader
-        elif config.UNSUPERVISED.DATA.DATASET == "BP4DPlus":
-            unsupervised_loader = data_loader.BP4DPlusLoader.BP4DPlusLoader
-        elif config.UNSUPERVISED.DATA.DATASET == "UBFC-PHYS":
-            unsupervised_loader = data_loader.UBFCPHYSLoader.UBFCPHYSLoader
         elif config.UNSUPERVISED.DATA.DATASET == "VUB-rPPG":
             unsupervised_loader = data_loader.VUBrPPGLoader.VUBrPPGLoader
         else:
@@ -315,12 +270,17 @@ if __name__ == "__main__":
     else:
         raise ValueError("Unsupported toolbox_mode! Currently support train_and_test or only_test or unsupervised_method.")
 
+    gt_hr_fft_all, predict_hr_fft_all = None, None
     if config.TOOLBOX_MODE == "train_and_test":
         # inspect_first_batch(data_loader_dict['train'])
         train_and_test(config, data_loader_dict)
     elif config.TOOLBOX_MODE == "only_test":
-        test(config, data_loader_dict)
+        gt_hr_fft_all, predict_hr_fft_all = test(config, data_loader_dict)
+        print(f"Ground Truth HR: {gt_hr_fft_all}")
+        print(f"Predicted HR: {predict_hr_fft_all}")
     elif config.TOOLBOX_MODE == "unsupervised_method":
         unsupervised_method_inference(config, data_loader_dict)
     else:
         print("TOOLBOX_MODE only support train_and_test or only_test !", end='\n\n')
+
+    

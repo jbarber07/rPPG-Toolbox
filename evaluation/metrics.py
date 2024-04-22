@@ -194,3 +194,5 @@ def calculate_metrics(predictions, labels, config):
                 raise ValueError("Wrong Test Metric Type")
     else:
         raise ValueError("Inference evaluation method name wrong!")
+    
+    return gt_hr_fft_all, predict_hr_fft_all
