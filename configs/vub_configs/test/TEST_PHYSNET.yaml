@@ -6,12 +6,12 @@ TEST:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: False                    # if first time, should be true
+    DO_PREPROCESS: True                    # if first time, should be true
     DATA_FORMAT: NCDHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
     EXP_DATA_NAME: ""
-    BEGIN: 0.8
+    BEGIN: 0.0
     END: 1.0
     PREPROCESS :
       USE_PSUEDO_PPG_LABEL: True
@@ -46,4 +46,4 @@ INFERENCE:
   EVALUATION_WINDOW:
     USE_SMALLER_WINDOW: False        # Change this if you'd like an evaluation window smaller than the test video length
     WINDOW_SIZE: 10        # In seconds
-  MODEL_PATH: "/home/guourg5/rPPG-Toolbox/runs/exp/VUB-rPPG_SizeW72_SizeH72_ClipLength128_DataTypeDiffNormalized_DataAugNone_LabelTypeDiffNormalized_Crop_faceFalse_BackendHC_Large_boxFalse_Large_size1.5_Dyamic_DetFalse_det_len32_Median_face_boxFalse/PreTrainedModels/VUB_physnet_Epoch29.pth"
+  MODEL_PATH: "/home/guourg5/rPPG-Toolbox/runs/exp/VUB-rPPG_SizeW72_SizeH72_ClipLength128_DataTypeDiffNormalized_DataAugNone_LabelTypeDiffNormalized_Crop_faceFalse_BackendHC_Large_boxFalse_Large_size1.5_Dyamic_DetFalse_det_len32_Median_face_boxFalse/PreTrainedModels/VUB-rPPG_physnet_VUB-rPPG_Epoch29.pth"
