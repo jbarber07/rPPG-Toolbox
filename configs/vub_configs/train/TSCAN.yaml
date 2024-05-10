@@ -9,7 +9,7 @@ TRAIN:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True               # if first time, should be true
+    DO_PREPROCESS: False               # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -17,7 +17,6 @@ TRAIN:
     BEGIN: 0.0
     END: 0.6
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: ['DiffNormalized','Standardized']
       DATA_AUG: ['None']    # 'None' or 'Motion' is supported, used if the data path points to an augmented dataset or requires augmentation
       LABEL_TYPE: DiffNormalized
@@ -39,7 +38,7 @@ VALID:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True                  # if first time, should be true
+    DO_PREPROCESS: False                  # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -47,7 +46,6 @@ VALID:
     BEGIN: 0.6
     END: 0.8
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: [ 'DiffNormalized','Standardized' ]
       DATA_AUG: ['None']    # 'None' or 'Motion' is supported, used if the data path points to an augmented dataset or requires augmentation
       LABEL_TYPE: DiffNormalized
@@ -71,7 +69,7 @@ TEST:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True                    # if first time, should be true
+    DO_PREPROCESS: False                    # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -79,7 +77,6 @@ TEST:
     BEGIN: 0.8
     END: 1.0
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: [ 'DiffNormalized','Standardized' ]
       LABEL_TYPE: DiffNormalized
       DO_CHUNK: True

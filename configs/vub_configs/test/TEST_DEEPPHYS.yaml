@@ -1,12 +1,13 @@
 BASE: ['']
 TOOLBOX_MODE: "only_test"      # "train_and_test"  or "only_test"
 TEST:
-  METRICS: ['MAE', 'RMSE', 'MAPE', 'Pearson', 'SNR', 'BA']
+  METRICS: ['MAE', 'RMSE', 'MAPE', 'Pearson', 'SNR']
   USE_LAST_EPOCH: True
+  OUTPUT_SAVE_DIR: ""
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True                    # if first time, should be true
+    DO_PREPROCESS: False                    # if first time, should be true
     DATA_FORMAT: NDCHW
     DATA_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -14,7 +15,6 @@ TEST:
     BEGIN: 0.8
     END: 1.0
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: [ 'DiffNormalized','Standardized' ]
       LABEL_TYPE: DiffNormalized
       DO_CHUNK: True
@@ -44,4 +44,4 @@ INFERENCE:
   EVALUATION_WINDOW:
     USE_SMALLER_WINDOW: False        # Change this if you'd like an evaluation window smaller than the test video length
     WINDOW_SIZE: 10        # In seconds
-  MODEL_PATH: "/home/guourg5/rPPG-Toolbox/runs/exp/VUB-rPPG_SizeW72_SizeH72_ClipLength180_DataTypeDiffNormalized_Standardized_DataAugNone_LabelTypeDiffNormalized_Crop_faceFalse_BackendHC_Large_boxFalse_Large_size1.5_Dyamic_DetFalse_det_len30_Median_face_boxFalse/PreTrainedModels/VUB-rPPG_deepphys_VUB-rPPG_Epoch29.pth"
+  MODEL_PATH: "/home/guourg5/rPPG-Toolbox/final_model_release/UBFC-rPPG_DeepPhys.pth"

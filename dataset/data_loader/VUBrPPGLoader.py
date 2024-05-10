@@ -36,6 +36,8 @@ class VUBrPPGLoader(BaseLoader):
                 config_data(CfgNode): data settings(ref:config.py).
         """
         super().__init__(name, data_path, config_data)
+        self.data_path = data_path
+
 
     def get_raw_data(self, data_path):
         """Returns data directories under the path(For UBFC-rPPG dataset)."""
@@ -43,9 +45,17 @@ class VUBrPPGLoader(BaseLoader):
         if not data_dirs:
             raise ValueError(self.dataset_name + " data paths empty!")
         dirs = [{"index": re.search(
-            'subject_(\d+)', data_dir).group(0), "path": data_dir} for data_dir in data_dirs]
+            'subject_(\d+)*', data_dir).group(0), "path": data_dir} for data_dir in data_dirs]
         return dirs
-
+    def is_original_folder_name(self,folder_name):
+        # Split folder name by '_'
+        parts = folder_name.split('_')
+        # Check if the folder name has '_n_1' pattern
+        if len(parts) > 2:
+            return False  # Augmented folder name
+        else:
+            return True  # Original folder name
+        
     def split_raw_data(self, data_dirs, begin, end):
         """Returns a subset of data dirs, split with begin and end values."""
         if begin == 0 and end == 1:  # return the full directory if begin == 0 and end == 1
@@ -60,67 +70,85 @@ class VUBrPPGLoader(BaseLoader):
 
         return data_dirs_new
     
-    def augment_frames(self, frames):
-        seq = iaa.Sequential([
-            iaa.Fliplr(0.5),  # Horizontally flip half of the frames
-            iaa.Affine(
-                rotate=(-10, 10)  # Mild rotation
-            ),
-            # iaa.Affine(scale={"x": (0.95, 1.05), "y": (0.95, 1.05)})  # Mild scaling
-        ], random_order=True)  # Apply augmenters in random order
-
-        if isinstance(frames, np.ndarray):
-            frames_list = [frames[i] for i in range(frames.shape[0])]
-        else:
-            frames_list = frames
-
-        augmented_frames = seq(images=frames_list)
-
-        if not all(frame.ndim == 3 and frame.shape[2] == 3 for frame in augmented_frames):
-            raise ValueError("Augmentation has produced frames with incorrect dimensions.")
-
-        if isinstance(augmented_frames, list):
-            augmented_frames = np.array(augmented_frames, dtype=np.uint8)
-
-        return augmented_frames
-
 
     def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict):
-        filename = data_dirs[i]['path']
+        """ invoked by preprocess_dataset for multi_process."""
+        filename = os.path.split(data_dirs[i]['path'])[-1]
         saved_filename = data_dirs[i]['index']
-        # Read and validate original frames
-        original_frames = self.read_video(os.path.join(filename, "vid.mp4"))
-        if original_frames is None or len(original_frames) == 0:
-            raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/vid.mp4")
 
-        frames_to_process = [original_frames]  # Start with original frames
-        # Apply augmentation if enabled and add to processing list
-        if 'AUGMENT' in config_preprocess.DATA_AUG:
-            augmented_frames = self.augment_frames(original_frames.copy())
-            if any(frame.ndim != 3 or frame.shape[-1] != 3 for frame in augmented_frames):
-                raise ValueError("Augmented frames have incorrect dimensions")
-            frames_to_process.append(augmented_frames)  # Include augmented frames
-
-        all_input_names = []
-
-        # Read labels once, apply to both original and augmented frames
-        if config_preprocess.USE_PSUEDO_PPG_LABEL:
-            bvps = self.generate_pos_psuedo_labels(original_frames, fs=self.config_data.FS)
+        # Read Frames
+        if 'None' in config_preprocess.DATA_AUG:
+            # Utilize dataset-specific function to read video
+            frames = self.read_video(
+                os.path.join(data_dirs[i]['path'],"vid.mp4"))
+        elif 'Motion' in config_preprocess.DATA_AUG:
+            # Utilize general function to read video in .npy format
+            frames = self.read_npy_video(
+                glob.glob(os.path.join(data_dirs[i]['path'],'*.npy')))
         else:
-            bvps = self.read_wave(os.path.join(filename,  "ground_truth.xlsx"))
+            raise ValueError(f'Unsupported DATA_AUG specified for {self.dataset_name} dataset! Received {config_preprocess.DATA_AUG}.')
+        if len(frames) == 0:
+            raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/vid.mp4")
+        
+        # Read Labels
+        if config_preprocess.USE_PSUEDO_PPG_LABEL:
+            # check if the folder name contains 'fake'
+            if 'fake' in filename:
+                print(f"Generating null psuedo labels for {filename}")
+                bvps = self.generate_null_psuedo_labels(frames, fs=self.config_data.FS)
+            else:
+                if self.is_original_folder_name(filename):
+                    print(f"Generating psuedo labels for {filename} using the same folder")
+                    bvps = self.generate_pos_psuedo_labels(frames, fs=self.config_data.FS)
+                else:
+                    # get the original folder name
+                    original_folder_name = '_'.join(filename.split('_')[:-1])
+                    #check if still need to remove a part. example: subject_19_inc_lum
+                    if not self.is_original_folder_name(original_folder_name):
+                        original_folder_name = '_'.join(original_folder_name.split('_')[:-1])
 
-        # Process each set of frames (original and possibly augmented)
-        for frames in frames_to_process:
-            frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
-            input_name_list, _ = self.save_multi_process(frames_clips, bvps_clips, saved_filename)
+                    # get the data path
+                    data_path = os.path.split(data_dirs[i]['path'])[0] 
+                    # print(f"Data path: {data_path}")               
+                    # get the original folder path
+                    original_folder_path = os.path.join(data_path, original_folder_name)
+                    # print(f"Original folder path: {original_folder_path}")
+                    # get the original folder frames
+                    original_frames = self.read_video(os.path.join(original_folder_path, "vid.mp4"))
+                    # generate psuedo labels
+                    bvps = self.generate_pos_psuedo_labels(original_frames, fs=self.config_data.FS)
+                    print(f"Augmented folder: {filename} using original folder: {original_folder_name}")
+        else:
+            if 'fake' in filename:
+                # generate null labels
+                print(f"Generating null labels for {filename}")
+                bvps = self.generate_null_psuedo_labels(frames, fs=self.config_data.FS)
+            else:
+                if self.is_original_folder_name(filename):
+                    subject_number = '_'.join(filename.split('_')[1:])
+                    print(f"Reading labels from {data_dirs[i]['path']}/subj_subject_{subject_number}_ppg.txt")
+                    bvps = self.read_wave(
+                        os.path.join(data_dirs[i]['path'],f"subj_subject_{subject_number}_ppg.txt"))
+                else:
+                    # get the original folder name
+                    original_folder_name = '_'.join(filename.split('_')[:-1])
+                    #check if still need to remove a part. example: subject_19_inc_lum
+                    if not self.is_original_folder_name(original_folder_name):
+                        original_folder_name = '_'.join(original_folder_name.split('_')[:-1])
 
-            all_input_names.extend(input_name_list)
-
-        # Save processed input data path names to dictionary
-        file_list_dict[i] = all_input_names
-
+                    # get the data path
+                    data_path = os.path.split(data_dirs[i]['path'])[0] 
+                    # get the original folder path
+                    original_folder_path = os.path.join(data_path, original_folder_name)
+                    # get labels
+                    subject_number = '_'.join(original_folder_name.split('_')[1:])
+                    bvps = self.read_wave(os.path.join(original_folder_path,f"subj_subject_{subject_number}_ppg.txt"))
+                    print(f"Augmented folder: {filename} using original folder: {subject_number}")
+        
+        frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
+        input_name_list, label_name_list = self.save_multi_process(frames_clips, bvps_clips, filename)
+        file_list_dict[i] = input_name_list
         return file_list_dict
-
 
 
     @staticmethod
@@ -141,16 +169,17 @@ class VUBrPPGLoader(BaseLoader):
     @staticmethod
     def read_wave(bvp_file):
         """Reads a bvp signal file."""
-
-        # Read the xlsx file
-        df = pd.read_excel(bvp_file)
-
-        # Remove the first row (headers)
-        df = df.iloc[1:]
-
-        # Take the third column
-        bvp = df.iloc[:, 2].values
+        bvp = np.loadtxt(bvp_file)
         return np.asarray(bvp)
+        # # Read the xlsx file
+        # df = pd.read_excel(bvp_file)
+
+        # # Remove the first row (headers)
+        # df = df.iloc[1:]
+
+        # # Take the third column
+        # bvp = df.iloc[:, 2].values
+        # return np.asarray(bvp)
     
         
     

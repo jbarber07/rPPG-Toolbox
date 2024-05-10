@@ -17,7 +17,6 @@ TRAIN:
     BEGIN: 0.0
     END: 0.6
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: ['Standardized']
       DATA_AUG: ['None']    # 'None' or 'Motion' is supported, used if the data path points to an augmented dataset or requires augmentation
       LABEL_TYPE: DiffNormalized
@@ -47,7 +46,6 @@ VALID:
     BEGIN: 0.6
     END: 0.8
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: ['Standardized']
       DATA_AUG: ['None']    # 'None' or 'Motion' is supported, used if the data path points to an augmented dataset or requires augmentation
       LABEL_TYPE: DiffNormalized
@@ -79,7 +77,6 @@ TEST:
     BEGIN: 0.8
     END: 1.0
     PREPROCESS:
-      USE_PSUEDO_PPG_LABEL: True
       DATA_TYPE: ['Standardized']
       LABEL_TYPE: DiffNormalized
       DO_CHUNK: True

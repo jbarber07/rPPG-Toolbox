@@ -1,0 +1,21 @@
+We can clearly see that traditional methods are impacted by the luminosity but not the neural methods
+EFFICIENTPHYS:
+    HR_label: 67.67578125, HR_pred: 90.52734375, SNR: -11.993280006600123
+    HR_label: 67.67578125, HR_pred: 59.765625, SNR: -10.933015775313923
+    HR_label: 67.67578125, HR_pred: 56.25, SNR: -11.895333947318054
+    HR_label: 61.5234375, HR_pred: 61.5234375, SNR: -5.110597483237514
+    HR_label: 67.67578125, HR_pred: 50.09765625, SNR: -14.816590112822595
+    
+PHYSNET:
+    - impacted by the luminosity change
+    -   HR_label: 59.765625, HR_pred: 59.765625, SNR: -6.119748091014272 => this one is the right value
+        HR_label: 80.859375, HR_pred: 75.5859375, SNR: -7.158806771245577
+        HR_label: 80.859375, HR_pred: 75.5859375, SNR: -8.998916292359393
+        HR_label: 83.49609375, HR_pred: 83.49609375, SNR: -10.144768759863506
+        HR_label: 59.765625, HR_pred: 59.765625, SNR: -7.840148410922615
+
+PHYSFORMER:
+    - 
+
+
+

@@ -146,6 +146,25 @@ class BaseLoader(Dataset):
             + f'Received frames of type {frames.dtype} and range {np.min(frames)} to {np.max(frames)}.')
         return np.asarray(processed_frames)
 
+    def generate_null_psuedo_labels(self, frames, fs=30):
+        """Returns a null PPG signal for a given number of frames.
+
+        Args:
+            frames (List[array]): A list of video frames.
+            fs (int or float): Sampling rate of video, not used in this function.
+
+        Returns:
+            np.array: An array of zeros, representing the absence of a PPG signal.
+        """
+
+        # Determine the number of frames
+        num_frames = len(frames)
+
+        # Create a zero-filled array of the same length
+        null_signal = np.zeros(num_frames)
+
+        return null_signal
+    
     def generate_pos_psuedo_labels(self, frames, fs=30):
         """Generated POS-based PPG Psuedo Labels For Training
 
@@ -226,6 +245,7 @@ class BaseLoader(Dataset):
             frames,
             config_preprocess.RESIZE.W,
             config_preprocess.RESIZE.H)
+        
         #save one frame for debugging
         cv2.imwrite('preprocessed_frame.jpg', frames[0])
         
@@ -539,9 +559,14 @@ class BaseLoader(Dataset):
     def diff_normalize_label(label):
         """Calculate discrete difference in labels along the time-axis and normalize by its standard deviation."""
         diff_label = np.diff(label, axis=0)
-        diffnormalized_label = diff_label / np.std(diff_label)
+        std_diff_label = np.std(diff_label)
+        if std_diff_label == 0:
+            # Standard deviation is zero, avoid division by zero
+            diffnormalized_label = np.zeros_like(diff_label)
+        else:
+            diffnormalized_label = diff_label / std_diff_label
+        # Append a zero at the end to match the original label size
         diffnormalized_label = np.append(diffnormalized_label, np.zeros(1), axis=0)
-        diffnormalized_label[np.isnan(diffnormalized_label)] = 0
         return diffnormalized_label
 
     @staticmethod
@@ -555,10 +580,14 @@ class BaseLoader(Dataset):
     @staticmethod
     def standardized_label(label):
         """Z-score standardization for label signal."""
-        label = label - np.mean(label)
-        label = label / np.std(label)
-        label[np.isnan(label)] = 0
-        return label
+        mean_label = np.mean(label)
+        std_label = np.std(label)
+        if std_label == 0:
+            # Standard deviation is zero, all values are the same, avoid NaN by setting standardized values to zero
+            standardized_label = np.zeros_like(label)
+        else:
+            standardized_label = (label - mean_label) / std_label
+        return standardized_label
 
     @staticmethod
     def resample_ppg(input_signal, target_length):

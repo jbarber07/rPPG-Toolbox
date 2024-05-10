@@ -279,6 +279,8 @@ if __name__ == "__main__":
         print(f"Ground Truth HR: {gt_hr_fft_all}")
         print(f"Predicted HR: {predict_hr_fft_all}")
     elif config.TOOLBOX_MODE == "unsupervised_method":
+        
+
         unsupervised_method_inference(config, data_loader_dict)
     else:
         print("TOOLBOX_MODE only support train_and_test or only_test !", end='\n\n')

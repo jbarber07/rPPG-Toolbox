@@ -217,7 +217,8 @@ class DeepPhysTrainer(BaseTrainer):
                 if self.config.TEST.OUTPUT_SAVE_DIR:
                     labels_test = labels_test.cpu()
                     pred_ppg_test = pred_ppg_test.cpu()
-
+                    
+                # Save each prediction to a file
                 for idx in range(batch_size):
                     subj_index = test_batch[2][idx]
                     sort_index = int(test_batch[3][idx])
@@ -226,13 +227,20 @@ class DeepPhysTrainer(BaseTrainer):
                         labels[subj_index] = dict()
                     predictions[subj_index][sort_index] = pred_ppg_test[idx * self.chunk_len:(idx + 1) * self.chunk_len]
                     labels[subj_index][sort_index] = labels_test[idx * self.chunk_len:(idx + 1) * self.chunk_len]
+
         
         writer.close()
         print('')
-        calculate_metrics(predictions, labels, self.config)
+        gt_hr_fft_all, predict_hr_fft_all = calculate_metrics(predictions, labels, self.config)
         if self.config.TEST.OUTPUT_SAVE_DIR: # saving test outputs
             self.save_test_outputs(predictions, labels, self.config)
-
+            for subj_index, sorted_preds in predictions.items():
+                sorted_keys = sorted(sorted_preds.keys())
+                with open(f"{self.config.TEST.OUTPUT_SAVE_DIR}/subj_{subj_index}_ppg.txt", 'w') as file:
+                    for key in sorted_keys:
+                        np.savetxt(file, sorted_preds[key], delimiter=',')
+        return gt_hr_fft_all, predict_hr_fft_all
+    
     def save_model(self, index):
         """Inits parameters from args and the writer for TensorboardX."""
         if not os.path.exists(self.model_dir):

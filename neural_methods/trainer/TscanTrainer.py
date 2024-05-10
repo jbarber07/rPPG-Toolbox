@@ -234,8 +234,13 @@ class TscanTrainer(BaseTrainer):
         print('')
         writer.close()
         gt_hr_fft_all, predict_hr_fft_all = calculate_metrics(predictions, labels, self.config)
-        if self.config.TEST.OUTPUT_SAVE_DIR:  # saving test outputs
+        if self.config.TEST.OUTPUT_SAVE_DIR: # saving test outputs
             self.save_test_outputs(predictions, labels, self.config)
+            for subj_index, sorted_preds in predictions.items():
+                sorted_keys = sorted(sorted_preds.keys())
+                with open(f"{self.config.TEST.OUTPUT_SAVE_DIR}/subj_{subj_index}_ppg.txt", 'w') as file:
+                    for key in sorted_keys:
+                        np.savetxt(file, sorted_preds[key], delimiter=',')
         return gt_hr_fft_all, predict_hr_fft_all
 
     def save_model(self, index):

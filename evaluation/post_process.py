@@ -5,7 +5,7 @@ The file also  includes helper funcs such as detrend, mag2db etc.
 import numpy as np
 import scipy
 import scipy.io
-from scipy.signal import butter
+from scipy.signal import butter, filtfilt
 from scipy.sparse import spdiags
 import torch
 
@@ -99,31 +99,45 @@ def _calculate_SNR(pred_ppg_signal, hr_label, fs=30, low_pass=0.75, high_pass=2.
 
 def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_bandpass=True, hr_method='FFT', unsupervised_flag=False):
     """Calculate video-level HR and SNR"""
-    if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
-        predictions = _detrend(np.cumsum(predictions), 100)
-        if not unsupervised_flag:
-            labels = _detrend(np.cumsum(labels), 100)
+    hr_label = 0
+    hr_pred = 0
+    # Convert labels to a numpy array explicitly to avoid type issues
+    labels = np.array(labels)
+    #print each element of labels in a loop with a\n
+    # for i in range(len(labels)):
+    #     print(f'labels[{i}]: {labels[i]}')
+
+    if np.count_nonzero(labels == 0) < 2:
+        if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
+            predictions = _detrend(np.cumsum(predictions), 100)
+            if not unsupervised_flag:
+                labels = _detrend(np.cumsum(labels), 100)
+        else:
+            predictions = _detrend(predictions, 100)
+            if not unsupervised_flag:
+                labels = _detrend(labels, 100)
+        if use_bandpass:
+            # bandpass filter between [0.75, 2.5] Hz
+            # equals [45, 150] beats per min
+            [b, a] = butter(1, [0.75 / fs * 2, 2.5 / fs * 2], btype='bandpass')
+            predictions = scipy.signal.filtfilt(b, a, np.double(predictions))
+            if not unsupervised_flag:
+                labels = scipy.signal.filtfilt(b, a, np.double(labels))
+        if hr_method == 'FFT':
+            hr_pred = _calculate_fft_hr(predictions, fs=fs)
+            if not unsupervised_flag:
+                    hr_label = _calculate_fft_hr(labels, fs=fs)
+        elif hr_method == 'Peak':
+            hr_pred = _calculate_peak_hr(predictions, fs=fs)
+            if not unsupervised_flag:
+                hr_label = _calculate_peak_hr(labels, fs=fs)
+    
     else:
-        predictions = _detrend(predictions, 100)
-        if not unsupervised_flag:
-            labels = _detrend(labels, 100)
-    if use_bandpass:
-        # bandpass filter between [0.75, 2.5] Hz
-        # equals [45, 150] beats per min
-        [b, a] = butter(1, [0.75 / fs * 2, 2.5 / fs * 2], btype='bandpass')
-        predictions = scipy.signal.filtfilt(b, a, np.double(predictions))
-        if not unsupervised_flag:
-            labels = scipy.signal.filtfilt(b, a, np.double(labels))
-    if hr_method == 'FFT':
+        print('Zero label')
+        hr_label = 0 #fake hand
         hr_pred = _calculate_fft_hr(predictions, fs=fs)
-        if not unsupervised_flag:
-            hr_label = _calculate_fft_hr(labels, fs=fs)
-    elif hr_method == 'Peak':
-        hr_pred = _calculate_peak_hr(predictions, fs=fs)
-        if not unsupervised_flag:
-            hr_label = _calculate_peak_hr(labels, fs=fs)
-    else:
-        raise ValueError('Please use FFT or Peak to calculate your HR.')
+
+
     SNR = 0
     if unsupervised_flag:
         hr_label = np.mean(labels)
