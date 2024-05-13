@@ -8,6 +8,7 @@ import scipy.io
 from scipy.signal import butter, filtfilt
 from scipy.sparse import spdiags
 import torch
+import os
 
 
 def _next_power_of_2(x):
@@ -97,7 +98,7 @@ def _calculate_SNR(pred_ppg_signal, hr_label, fs=30, low_pass=0.75, high_pass=2.
         SNR = 0
     return SNR
 
-def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_bandpass=True, hr_method='FFT', unsupervised_flag=False):
+def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_bandpass=True, hr_method='FFT', unsupervised_flag=False, pred_filename=None):
     """Calculate video-level HR and SNR"""
     hr_label = 0
     hr_pred = 0
@@ -143,5 +144,13 @@ def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_b
         hr_label = np.mean(labels)
     else:
         SNR = _calculate_SNR(predictions, hr_label, fs=fs)
+    # create a folder to save the predictions
+    if not os.path.exists('predictions'):
+        os.makedirs('predictions')
+    # save the predictions in a file in the predictions folder
+    if pred_filename is not None:
+        np.savetxt(f'predictions/{pred_filename}', predictions, delimiter=',')
+    
+
     print(f'HR_label: {hr_label}, HR_pred: {hr_pred}, SNR: {SNR}')
     return hr_label, hr_pred, SNR

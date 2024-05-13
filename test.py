@@ -23,5 +23,5 @@ def plot_ppg_signal(file_path):
 
 # Example usage
 if __name__ == '__main__':
-    file_path = '/home/guourg5/rPPG-Toolbox/runs/exp/VUB-rPPG_SizeW72_SizeH72_ClipLength180_DataTypeDiffNormalized_Standardized_DataAugNone_LabelTypeDiffNormalized_Crop_faceFalse_BackendHC_Large_boxFalse_Large_size1.5_Dyamic_DetFalse_det_len30_Median_face_boxFalse/saved_test_outputs/subj_subject_13_ppg.txt'  # Replace with the path to your PPG file
+    file_path = '/home/guourg5/rPPG-Toolbox/prediction_subject_1_aug2.txt'  # Replace with the path to your PPG file
     plot_ppg_signal(file_path)
