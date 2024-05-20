@@ -126,9 +126,9 @@ class VUBrPPGLoader(BaseLoader):
             else:
                 if self.is_original_folder_name(filename):
                     subject_number = '_'.join(filename.split('_')[1:])
-                    print(f"Reading labels from {data_dirs[i]['path']}/subj_subject_{subject_number}_ppg.txt")
+                    print(f"Reading labels from subject_{subject_number}")
                     bvps = self.read_wave(
-                        os.path.join(data_dirs[i]['path'],f"subj_subject_{subject_number}_ppg.txt"))
+                        os.path.join(data_dirs[i]['path'],f"ground_truth_preprocessed.txt"))
                 else:
                     # get the original folder name
                     original_folder_name = '_'.join(filename.split('_')[:-1])
@@ -142,7 +142,7 @@ class VUBrPPGLoader(BaseLoader):
                     original_folder_path = os.path.join(data_path, original_folder_name)
                     # get labels
                     subject_number = '_'.join(original_folder_name.split('_')[1:])
-                    bvps = self.read_wave(os.path.join(original_folder_path,f"subj_subject_{subject_number}_ppg.txt"))
+                    bvps = self.read_wave(os.path.join(original_folder_path,f"ground_truth_preprocessed.txt"))
                     print(f"Augmented folder: {filename} using original folder: {subject_number}")
         
         frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
