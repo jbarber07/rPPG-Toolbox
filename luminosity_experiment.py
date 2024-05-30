@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import os
 
 def adjust_luminosity(video_path, factors, output_folder):
     # Load the video
@@ -13,7 +14,9 @@ def adjust_luminosity(video_path, factors, output_folder):
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    
+    #create folder if not exists
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
     # Process each luminosity factor and save a new video
     for factor in factors:
         output_path = f"{output_folder}/video_luminosity_{factor}.mp4"
@@ -40,5 +43,6 @@ def adjust_luminosity(video_path, factors, output_folder):
     cap.release()
 
 # Uncomment the function call and adjust the parameters as needed for your specific video and output needs.
-adjust_luminosity(r"/home/guourg5/rPPG-Toolbox/My_dataset/Backhand/subject_6/vid.mp4", [0.90,0.95, 1.00, 1.05, 1.10], r"output_lumin")
+adjust_luminosity(r"/mnt/d/Backhand_last/subject_4/vid.mp4", [0.90,0.95, 1.00, 1.05, 1.10], r"/mnt/d/output_lumin")
 
+# 4 and 6

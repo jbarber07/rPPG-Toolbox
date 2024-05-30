@@ -1,0 +1,175 @@
+# luminosity_exp_1 PHYSNET
+subject_1: HR_pred: 50.9765625,
+subject_2: HR_pred: 51.85546875
+
+# luminosity_exp_105 PHYSNET
+subject_1: HR_pred: 50.09765625
+subject_2: HR_pred: 51.85546875
+
+# luminosity_exp_11 PHYSNET
+subject_1: HR_pred: 51.85546875
+subject_2: HR_pred: 51.85546875
+
+# luminosity_exp_09 PHYSNET
+subject_1: HR_pred: 50.9765625
+subject_2: HR_pred: 51.85546875
+
+# luminosity_exp_095 PHYSNET
+subject_1: HR_pred: 84.375
+subject_2: HR_pred: 65.0390625
+
+
+# luminosity_exp_1 DEEPPHYS
+subject_1: HR_pred: 100.1953125
+subject_2: HR_pred: 59.765625
+
+# luminosity_exp_105 DEEPPHYS
+subject_1: HR_pred: 100.1953125
+subject_2: HR_pred: 59.765625
+
+# luminosity_exp_11 DEEPPHYS
+subject_1: HR_pred: 100.1953125
+subject_2: HR_pred: 59.765625
+
+# luminosity_exp_095 DEEPPHYS
+subject_1: HR_pred: 100.1953125
+subject_2: HR_pred: 59.765625
+
+# luminosity_exp_09 DEEPPHYS
+subject_1: HR_pred: 100.1953125
+subject_2: HR_pred: 59.765625
+
+# traditional methods:
+
+# luminosity_exp_1:
+===Unsupervised Method ( ICA ) Predicting ===
+subject_1:HR_pred: 72.94921875
+subject_2:HR_pred: 59.765625
+
+===Unsupervised Method ( POS ) Predicting ===
+subject_1:HR_pred: 77.34375
+subject_2:HR_pred: 86.1328125
+
+===Unsupervised Method ( CHROM ) Predicting ===
+subject_1:HR_pred: 69.43359375
+subject_2:HR_pred: 71.19140625
+
+===Unsupervised Method ( GREEN ) Predicting ===
+subject_1:HR_pred: 92.28515625
+subject_2:HR_pred: 72.0703125
+
+===Unsupervised Method ( LGI ) Predicting ===
+subject_1:HR_pred: 77.34375
+subject_2:HR_pred: 71.19140625
+
+===Unsupervised Method ( PBV ) Predicting ===
+subject_1:HR_pred: 60.64453125
+subject_2:HR_pred: 86.1328125
+
+# luminosity_exp_105:
+
+===Unsupervised Method ( ICA ) Predicting ===
+subject_1:HR_pred: 92.28515625
+subject_2:HR_pred: 79.98046875
+
+===Unsupervised Method ( POS ) Predicting ===
+subject_1:HR_pred: 65.0390625
+subject_2:HR_pred: 86.1328125
+
+===Unsupervised Method ( CHROM ) Predicting ===
+subject_1:HR_pred: 65.0390625
+subject_2:HR_pred: 79.98046875
+
+===Unsupervised Method ( GREEN ) Predicting ===
+subject_1:HR_pred: 60.64453125
+subject_2:HR_pred: 79.98046875
+
+===Unsupervised Method ( LGI ) Predicting ===
+subject_1:HR_pred: 65.0390625
+subject_2:HR_pred: 71.19140625
+
+===Unsupervised Method ( PBV ) Predicting ===
+subject_1:HR_pred: 59.765625
+subject_2:HR_pred: 81.73828125
+
+
+# luminosity_exp_11
+
+===Unsupervised Method ( ICA ) Predicting ===
+subject_1:HR_pred: 59.765625
+subject_2:HR_pred: 90.52734375
+
+===Unsupervised Method ( POS ) Predicting ===
+subject_1:HR_pred: 59.765625
+subject_2:HR_pred: 90.52734375
+
+===Unsupervised Method ( CHROM ) Predicting ===
+subject_1:HR_pred: 59.765625
+subject_2:HR_pred: 72.94921875
+
+===Unsupervised Method ( GREEN ) Predicting ===
+subject_1:HR_pred: 92.28515625
+subject_2:HR_pred: 72.0703125
+
+===Unsupervised Method ( LGI ) Predicting ===
+subject_1:HR_pred: 59.765625
+subject_2:HR_pred: 90.52734375
+
+===Unsupervised Method ( PBV ) Predicting ===
+subject_1:HR_pred: 59.765625
+subject_2:HR_pred: 90.52734375
+
+
+# luminosity_exp_09
+
+===Unsupervised Method ( ICA ) Predicting ===
+subject_1:HR_pred: 65.0390625
+subject_2:HR_pred: 65.91796875
+
+===Unsupervised Method ( POS ) Predicting ===
+subject_1:HR_pred: 71.19140625
+subject_2:HR_pred: 72.94921875
+
+===Unsupervised Method ( CHROM ) Predicting ===
+subject_1:HR_pred: 71.19140625
+subject_2:HR_pred: 84.375
+
+===Unsupervised Method ( GREEN ) Predicting ===
+subject_1:HR_pred: 69.43359375
+subject_2:HR_pred: 72.0703125
+
+===Unsupervised Method ( LGI ) Predicting ===
+subject_1:HR_pred: 65.0390625
+subject_2:HR_pred: 71.1914062
+
+===Unsupervised Method ( PBV ) Predicting ===
+subject_1:HR_pred: 65.0390625
+subject_2:HR_pred: 71.19140625
+
+
+# luminosity_exp_095
+
+===Unsupervised Method ( ICA ) Predicting ===
+subject_1:HR_pred: 63.28125
+subject_2:HR_pred: 67.67578125
+
+===Unsupervised Method ( POS ) Predicting ===
+subject_1:HR_pred: 78.22265625
+subject_2:HR_pred: 67.67578125
+
+===Unsupervised Method ( CHROM ) Predicting ===
+subject_1:HR_pred: 79.98046875
+subject_2:HR_pred: 71.19140625
+
+===Unsupervised Method ( GREEN ) Predicting ===
+subject_1:HR_pred: 69.43359375
+subject_2:HR_pred: 72.0703125
+
+===Unsupervised Method ( LGI ) Predicting ===
+subject_1:HR_pred: 78.22265625
+subject_2:HR_pred: 67.67578125
+
+===Unsupervised Method ( PBV ) Predicting ===
+subject_1:HR_pred: 63.28125
+subject_2:HR_pred: 67.67578125
+

@@ -80,7 +80,7 @@ class VUBrPPGLoader(BaseLoader):
         if 'None' in config_preprocess.DATA_AUG:
             # Utilize dataset-specific function to read video
             frames = self.read_video(
-                os.path.join(data_dirs[i]['path'],"vid.mp4"))
+                os.path.join(data_dirs[i]['path'],"segmented_vid.mp4"))
         elif 'Motion' in config_preprocess.DATA_AUG:
             # Utilize general function to read video in .npy format
             frames = self.read_npy_video(
@@ -88,7 +88,7 @@ class VUBrPPGLoader(BaseLoader):
         else:
             raise ValueError(f'Unsupported DATA_AUG specified for {self.dataset_name} dataset! Received {config_preprocess.DATA_AUG}.')
         if len(frames) == 0:
-            raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/vid.mp4")
+            raise ValueError(f"Failed to read frames from {data_dirs[i]['path']}/segmented_vid.mp4")
         
         # Read Labels
         if config_preprocess.USE_PSUEDO_PPG_LABEL:
@@ -114,7 +114,7 @@ class VUBrPPGLoader(BaseLoader):
                     original_folder_path = os.path.join(data_path, original_folder_name)
                     # print(f"Original folder path: {original_folder_path}")
                     # get the original folder frames
-                    original_frames = self.read_video(os.path.join(original_folder_path, "vid.mp4"))
+                    original_frames = self.read_video(os.path.join(original_folder_path, "segmented_vid.mp4"))
                     # generate psuedo labels
                     bvps = self.generate_pos_psuedo_labels(original_frames, fs=self.config_data.FS)
                     print(f"Augmented folder: {filename} using original folder: {original_folder_name}")
@@ -152,16 +152,16 @@ class VUBrPPGLoader(BaseLoader):
 
 
     @staticmethod
-    def read_video(video_file): # No skin segmentation
+    def read_video(video_file): 
         """Reads a video file, returns frames(T, H, W, 3) """
         VidObj = cv2.VideoCapture(video_file)
         VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
         success, frame = VidObj.read()
         frames = list()
         while success:
-            frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
+            # frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
             frame = np.asarray(frame)
-            frame = frame[:, frame.shape[1]//2:] # remove the pulse oximeter from the video
+            # frame = frame[:, frame.shape[1]//2:] # remove the pulse oximeter from the video
             frames.append(frame)
             success, frame = VidObj.read()
         return np.asarray(frames)

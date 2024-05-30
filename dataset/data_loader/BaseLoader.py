@@ -7,6 +7,7 @@ Dataset already supported: UBFC-rPPG, PURE, SCAMPS, BP4D+, and UBFC-PHYS.
 """
 import csv
 import glob
+import logging
 import os
 import re
 from math import ceil
@@ -22,7 +23,8 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
+import torch
+from semantic_segmentation import models, load_model
 
 class BaseLoader(Dataset):
     """The base class for data loading based on pytorch Dataset.
@@ -227,7 +229,7 @@ class BaseLoader(Dataset):
         self.build_file_list(file_list_dict)  # build file list
         self.load_preprocessed_data()  # load all data and corresponding labels (sorted for consistency)
         print("Total Number of raw files preprocessed:", len(data_dirs_split), end='\n\n')
-
+    
     def preprocess(self, frames, bvps, config_preprocess):
         """Preprocesses a pair of data.
 
@@ -239,8 +241,8 @@ class BaseLoader(Dataset):
             frame_clips(np.array): processed video data by frames
             bvps_clips(np.array): processed bvp (ppg) labels by frames
         """
-        # resize frames and crop for face region
-        
+        # save one frame for debugging
+        cv2.imwrite('initial_frame.jpg', frames[0])
         frames = self.crop_face_resize(
             frames,
             config_preprocess.RESIZE.W,
@@ -280,6 +282,27 @@ class BaseLoader(Dataset):
             bvps_clips = np.array([bvps])
 
         return frames_clips, bvps_clips
+
+    def skin_segmentation(self, frames):
+        """Applies skin segmentation on the given frames.
+
+        Args:
+            frames (np.array): A numpy array of video frames (T, H, W, 3).
+
+        Returns:
+            np.array: Frames with skin regions segmented out.
+        """
+        segmented_frames = []
+
+        for frame in frames:
+
+            mask = self.segment_skin(frame)
+            segmented_frame = cv2.bitwise_and(frame, frame, mask=mask)
+            segmented_frames.append(segmented_frame)
+        #save one frame for debugging
+        cv2.imwrite('segmented_frame.jpg', segmented_frames[0])
+
+        return np.array(segmented_frames)
 
     def face_detection(self, frame, backend, use_larger_box=False, larger_box_coef=1.0):
         """Face detection on a single frame.

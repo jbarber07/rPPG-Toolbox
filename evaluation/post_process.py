@@ -104,10 +104,7 @@ def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_b
     hr_pred = 0
     # Convert labels to a numpy array explicitly to avoid type issues
     labels = np.array(labels)
-    #print each element of labels in a loop with a\n
-    # for i in range(len(labels)):
-    #     print(f'labels[{i}]: {labels[i]}')
-
+    
     # if np.count_nonzero(labels == 0) < 2:
     if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
         predictions = _detrend(np.cumsum(predictions), 100)
