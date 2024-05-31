@@ -1,6 +1,7 @@
 """PhysNet Trainer."""
 import os
 from collections import OrderedDict
+import subprocess
 
 import numpy as np
 import torch
@@ -137,13 +138,34 @@ class PhysnetTrainer(BaseTrainer):
             valid_loss = np.asarray(valid_loss)
         return np.mean(valid_loss)
 
+    def get_gpu_utilization(self):
+        """Get the current GPU utilization."""
+        try:
+            result = subprocess.check_output(
+                ['nvidia-smi', '--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'], 
+                encoding='utf-8')
+            return float(result.strip())
+        except Exception as e:
+            print(f"Failed to get GPU utilization: {e}")
+            return -1
+
+    def write_profiling_info(self,file_path, info):
+        """Write profiling information to a file, ensuring no overwrite."""
+        if not os.path.exists(file_path):
+            with open(file_path, 'w') as file:
+                for key, value in info.items():
+                    file.write(f"{key}: {value}\n")
+        else:
+            with open(file_path, 'a') as file:
+                for key, value in info.items():
+                    file.write(f"{key}: {value}\n")
+
     def test(self, data_loader):
         """ Runs the model on test sets."""
         if data_loader["test"] is None:
             raise ValueError("No data for test")
         
-        print('')
-        print("===Testing===")
+        print("\n===Testing===")
         predictions = dict()
         labels = dict()
 
@@ -156,7 +178,7 @@ class PhysnetTrainer(BaseTrainer):
         else:
             if self.config.TEST.USE_LAST_EPOCH:
                 last_epoch_model_path = os.path.join(
-                self.model_dir, self.model_file_name + '_Epoch' + str(self.max_epoch_num - 1) + '.pth')
+                    self.model_dir, self.model_file_name + '_Epoch' + str(self.max_epoch_num - 1) + '.pth')
                 print("Testing uses last epoch as non-pretrained model!")
                 print(last_epoch_model_path)
                 self.model.load_state_dict(torch.load(last_epoch_model_path))
@@ -170,25 +192,46 @@ class PhysnetTrainer(BaseTrainer):
         self.model = self.model.to(self.config.DEVICE)
         self.model.eval()
         print("Running model evaluation on the testing dataset!")
+
         # TensorBoard setup
-        #check if the directory exists
         if not os.path.exists('./logs/inference_metrics/PHYSNET'):
             os.makedirs('./logs/inference_metrics/PHYSNET')
 
         writer = SummaryWriter(log_dir='./logs/inference_metrics/PHYSNET', filename_suffix='PHYSNET')
+
+        # Profiling information dictionary
+        profiling_info = {}
+
         # Measure model size
         model_size = os.path.getsize(self.config.INFERENCE.MODEL_PATH) / (1024 * 1024)  # Size in Megabytes
         print(f"Model size: {model_size:.2f} MB")
-        
-        # Add model size to writer
         writer.add_scalar('Model Size (MB)', model_size)
-        
+        profiling_info['Model Size (MB)'] = model_size
+
+        # Number of parameters
+        num_parameters = sum(p.numel() for p in self.model.parameters())
+        print(f"Number of parameters: {num_parameters}")
+        writer.add_scalar('Number of Parameters', num_parameters)
+        profiling_info['Number of Parameters'] = num_parameters
+
+        # Memory usage of the model weights
+        model_memory = sum(p.element_size() * p.nelement() for p in self.model.parameters()) / (1024 ** 2)  # in MB
+        print(f"Model memory usage: {model_memory:.2f} MB")
+        writer.add_scalar('Model Memory Usage (MB)', model_memory)
+        profiling_info['Model Memory Usage (MB)'] = model_memory
+
         with torch.no_grad():
-            peak_memory_usage_before = torch.cuda.max_memory_allocated()  # Capture peak memory before inference starts
             for batch_index, test_batch in enumerate(tqdm(data_loader["test"], ncols=80)):
                 batch_size = test_batch[0].shape[0]
-                data, label = test_batch[0].to(
-                    self.config.DEVICE), test_batch[1].to(self.config.DEVICE)
+                data, label = test_batch[0].to(self.config.DEVICE), test_batch[1].to(self.config.DEVICE)
+
+                # Log input and output shapes
+                writer.add_text('Input Shape', str(data.shape), batch_index)
+                writer.add_text('Output Shape', str(label.shape), batch_index)
+                if batch_index == 0:  # Log only once
+                    profiling_info['Input Shape'] = str(data.shape)
+                    profiling_info['Output Shape'] = str(label.shape)
+
                 # Start profiling
                 torch.cuda.synchronize()
                 start_time = torch.cuda.Event(enable_timing=True)
@@ -200,13 +243,22 @@ class PhysnetTrainer(BaseTrainer):
                 end_time.record()
                 torch.cuda.synchronize()  # Wait for the events to be recorded!
                 inference_time = start_time.elapsed_time(end_time)  # Time in milliseconds
-                
-                peak_memory_usage_after = torch.cuda.max_memory_allocated()  # Capture peak memory after inference
-                peak_memory_usage = (peak_memory_usage_after - peak_memory_usage_before) / (1024 ** 2)  # Convert to MB
+
+                # Peak memory usage
+                peak_memory_usage = torch.cuda.max_memory_allocated() / (1024 ** 2)  # Convert to MB
+
+                # GPU utilization
+                gpu_utilization = self.get_gpu_utilization()
 
                 # Logging to TensorBoard
                 writer.add_scalar('Inference Time (ms)', inference_time, batch_index)
                 writer.add_scalar('Peak Memory Usage (MB)', peak_memory_usage, batch_index)
+                writer.add_scalar('GPU Utilization (%)', gpu_utilization, batch_index)
+
+                if batch_index == 0:  # Log only once
+                    profiling_info['Inference Time (ms)'] = inference_time
+                    profiling_info['Peak Memory Usage (MB)'] = peak_memory_usage
+                    profiling_info['GPU Utilization (%)'] = gpu_utilization
 
                 if self.config.TEST.OUTPUT_SAVE_DIR:
                     label = label.cpu()
@@ -223,8 +275,13 @@ class PhysnetTrainer(BaseTrainer):
         
         writer.close()
         print('')
+        
+        # Save profiling information to a file
+        profiling_file_path = f"./logs/inference_metrics/profiling_results_{self.model_file_name}.txt"
+        self.write_profiling_info(profiling_file_path, profiling_info)
+        
         gt_hr_fft_all, predict_hr_fft_all = calculate_metrics(predictions, labels, self.config)
-        if self.config.TEST.OUTPUT_SAVE_DIR: # saving test outputs 
+        if self.config.TEST.OUTPUT_SAVE_DIR:  # saving test outputs 
             self.save_test_outputs(predictions, labels, self.config)
             for subj_index, sorted_preds in predictions.items():
                 sorted_keys = sorted(sorted_preds.keys())
@@ -232,6 +289,7 @@ class PhysnetTrainer(BaseTrainer):
                     for key in sorted_keys:
                         np.savetxt(file, sorted_preds[key], delimiter=',')
         return gt_hr_fft_all, predict_hr_fft_all
+
     def save_model(self, index):
         if not os.path.exists(self.model_dir):
             os.makedirs(self.model_dir)
