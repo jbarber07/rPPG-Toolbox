@@ -1,0 +1,7 @@
+Model Size (MB): 8.509121894836426
+Number of Parameters: 2228643
+Model Memory Usage (MB): 8.501598358154297
+Input Shape: torch.Size([720, 6, 72, 72])
+Output Shape: torch.Size([720, 1])
+Inference Time (ms): 1713.63525390625
+Peak Memory Usage (MB): 3585.080078125
