@@ -5,3 +5,12 @@ Input Shape: torch.Size([4, 3, 128, 72, 72])
 Output Shape: torch.Size([4, 128])
 Inference Time (ms): 444.7000427246094
 Peak Memory Usage (MB): 438.3349609375
+
+# PHYSNET_light
+Model Size (MB): 0.07322502136230469
+Number of Parameters: 14031
+Model Memory Usage (MB): 0.053524017333984375
+Input Shape: torch.Size([8, 3, 128, 72, 72])
+Output Shape: torch.Size([8, 128])
+Inference Time (ms): 1309.29248046875
+Peak Memory Usage (MB): 465.830078125

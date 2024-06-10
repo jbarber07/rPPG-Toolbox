@@ -9,6 +9,7 @@ import torch.optim as optim
 from evaluation.metrics import calculate_metrics
 from neural_methods.loss.PhysNetNegPearsonLoss import Neg_Pearson
 from neural_methods.model.PhysNet import PhysNet_padding_Encoder_Decoder_MAX
+from neural_methods.model.PhysNet_Light import PhysNet_Light
 from neural_methods.trainer.BaseTrainer import BaseTrainer
 from torch.autograd import Variable
 from tqdm import tqdm
@@ -31,8 +32,8 @@ class PhysnetTrainer(BaseTrainer):
         self.min_valid_loss = None
         self.best_epoch = 0
 
-        self.model = PhysNet_padding_Encoder_Decoder_MAX(
-            frames=config.MODEL.PHYSNET.FRAME_NUM).to(self.device)  # [3, T, 128,128]
+        self.model = PhysNet_Light(frames=config.MODEL.PHYSNET.FRAME_NUM).to(self.device)  # [3, T, 128,128]
+
 
         if config.TOOLBOX_MODE == "train_and_test":
             self.num_train_batches = len(data_loader["train"])
@@ -194,10 +195,10 @@ class PhysnetTrainer(BaseTrainer):
         print("Running model evaluation on the testing dataset!")
 
         # TensorBoard setup
-        if not os.path.exists('./logs/inference_metrics/PHYSNET'):
-            os.makedirs('./logs/inference_metrics/PHYSNET')
+        if not os.path.exists('./logs/inference_metrics/PHYSNET_LIGHT'):
+            os.makedirs('./logs/inference_metrics/PHYSNET_LIGHT')
 
-        writer = SummaryWriter(log_dir='./logs/inference_metrics/PHYSNET', filename_suffix='PHYSNET')
+        writer = SummaryWriter(log_dir='./logs/inference_metrics/PHYSNET_LIGHT', filename_suffix='PHYSNET_LIGHT')
 
         # Profiling information dictionary
         profiling_info = {}

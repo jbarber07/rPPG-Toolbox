@@ -1,15 +1,15 @@
 BASE: ['']
 TOOLBOX_MODE: "train_and_test" # "train_and_test"  or "only_test"
 TRAIN:
-  BATCH_SIZE: 4
+  BATCH_SIZE: 8
   EPOCHS: 30
-  LR: 9e-3
+  LR: 1e-3
   MODEL_FILE_NAME: VUB-rPPG_physnet_VUB-rPPG
   PLOT_LOSSES_AND_LR: True
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True            # if first time, should be true
+    DO_PREPROCESS: False            # if first time, should be true
     DATA_FORMAT: NCDHW
     DATA_PATH:  "/mnt/d/My_dataset2"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/mnt/d/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -39,7 +39,7 @@ VALID:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True                # if first time, should be true
+    DO_PREPROCESS: False                # if first time, should be true
     DATA_FORMAT: NCDHW
     DATA_PATH:  "/mnt/d/My_dataset2"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/mnt/d/PreprocessedData"    # Processed dataset save path, need to be updated
@@ -71,7 +71,7 @@ TEST:
   DATA:
     FS: 30
     DATASET: VUB-rPPG
-    DO_PREPROCESS: True                  # if first time, should be true
+    DO_PREPROCESS: False                  # if first time, should be true
     DATA_FORMAT: NCDHW
     DATA_PATH:  "/mnt/d/My_dataset2"                     # Raw dataset path, need to be updated
     CACHED_PATH: "/mnt/d/PreprocessedData"    # Processed dataset save path, need to be updated
